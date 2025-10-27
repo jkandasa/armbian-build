@@ -6,6 +6,8 @@
 # This file is a part of the Armbian Build Framework
 # https://github.com/armbian/build/
 #
+enable_extension "gxlimg"
+enable_extension "amlogic-fip-blobs"
 UBOOT_TARGET_MAP="${UBOOT_TARGET_MAP:-u-boot-dtb.img;;u-boot.bin.sd.bin:u-boot.bin u-boot-dtb.img}"
 BOOTSCRIPT="boot-meson64.cmd:boot.cmd"
 BOOTENV_FILE='meson.txt'
@@ -39,14 +41,13 @@ case $BRANCH in
 		declare -g KERNEL_MAJOR_MINOR="6.12"
 		;;
 	edge)
-		declare -g KERNEL_MAJOR_MINOR="6.13"
+		declare -g KERNEL_MAJOR_MINOR="6.18"
 		;;
 
 esac
 
 # Use custom vendor driver for wireless rtl88x2cs
 # See https://github.com/armbian/build/pull/6227
-# @TODO Only use for BOARDFAMILY="jethub" devices?
 function custom_kernel_config__enable_rtl88x2cs_driver() {
 	kernel_config_modifying_hashes+=("CONFIG_RTL8822CS=m")
 	if [[ -f .config ]]; then

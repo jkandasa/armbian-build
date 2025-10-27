@@ -50,10 +50,24 @@ function create_new_rootfs_cache_via_debootstrap() {
 
 	# this is different between debootstrap and regular apt-get; here we use acng as a prefix to the real repo
 	declare debootstrap_apt_mirror="http://${APT_MIRROR}"
-	if [[ "${MANAGE_ACNG}" == "yes" ]]; then
-		local debootstrap_apt_mirror="http://localhost:3142/${APT_MIRROR}"
-		acng_check_status_or_restart
-	fi
+	case "${MANAGE_ACNG}" in
+		yes)
+			local debootstrap_apt_mirror="http://localhost:3142/${APT_MIRROR}"
+			acng_check_status_or_restart
+			;;
+		no)     ;& # do nothing, fallthrough
+		"")
+			:  # still do nothing
+			;; # stop falling
+		*)
+			if [[ ! "${MANAGE_ACNG}" =~ ^https?:// ]]; then
+				exit_with_error "MANAGE_ACNG must be yes/no OR be a full URL with http/https" "${MANAGE_ACNG}"
+			else
+				# FIXME: although this works with mmdebstrap, there's a more idiomatic way with `--aptopt`
+				local debootstrap_apt_mirror="${MANAGE_ACNG}/${APT_MIRROR}"
+			fi
+			;;
+	esac
 
 	# @TODO: one day: https://gitlab.mister-muffin.de/josch/mmdebstrap/src/branch/main/mmdebstrap
 
@@ -98,6 +112,8 @@ function create_new_rootfs_cache_via_debootstrap() {
 		"'--components=${AGGREGATED_DEBOOTSTRAP_COMPONENTS_COMMA}'" # from aggregation.py
 	)
 
+	# This is necessary to debootstrap from a non-official repo
+	[[ $ARCH == loong64 ]] && deboostrap_arguments+=("--keyring=/usr/share/keyrings/debian-ports-archive-keyring.gpg")
 	# Small detour for local apt caching option.
 	local_apt_deb_cache_prepare "before debootstrap" # sets LOCAL_APT_CACHE_INFO
 	if [[ "${LOCAL_APT_CACHE_INFO[USE]}" == "yes" ]]; then

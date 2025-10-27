@@ -20,7 +20,7 @@
 #   $4 = :space: separated list of all MTD device names
 #        Note: MTD char device names are passed in format device_name:partition_label - e.g.: mtd0:SPL
 
-trap "exit" INT TERM
+trap "systemctl start docker >/dev/null 2>&1; exit" INT TERM
 [[ $EUID != 0 ]] && exec sudo "$0" "$@"
 
 [[ -f /usr/lib/u-boot/platform_install.sh ]] && source /usr/lib/u-boot/platform_install.sh
@@ -96,7 +96,7 @@ mkopts[f2fs]='-f'
 
 # @TODO source these options from one source, this is mostly defined in partioning.sh
 mountopts[ext4]='defaults,noatime,commit=120,errors=remount-ro,x-gvfs-hide	0	1'
-mountopts[btrfs]='defaults,noatime,commit=120,compress=lzo,x-gvfs-hide			0	2'
+mountopts[btrfs]="defaults,commit=120,compress=lzo,x-gvfs-hide,subvol=@	0	2"
 mountopts[f2fs]='defaults,noatime,x-gvfs-hide	0	2'
 
 # Create boot and root file system #
@@ -120,11 +120,24 @@ create_armbian()
 		[[ -n $2 ]] && ( mount -o compress-force=zlib "$2" "${TempDir}"/rootfs 2> /dev/null || mount "$2" "${TempDir}"/rootfs )
 		[[ -n $1 && $1 != "mtd" ]] && mount "$1" "${TempDir}"/bootfs
 	fi
+
+	# make separate subvolume for rootfs on btrfs
+	if [[ $eMMCFilesystemChoosen =~ ^(btrfs)$ ]]; then
+		btrfs subvolume create "${TempDir}"/rootfs/@
+		sync
+		btrfs subvolume list ${TempDir}/rootfs/ | grep 'path @$' | cut -d' ' -f2 \
+			| xargs -I{} btrfs subvolume set-default {} ${TempDir}/rootfs/
+		umount "${TempDir}"/rootfs
+		mount -o compress-force=zlib,subvol=@ "$2" "${TempDir}"/rootfs 2> /dev/null
+	fi
 	rm -rf "${TempDir}"/bootfs/* "${TempDir}"/rootfs/*
 
 	# sata root part
 	# UUID=xxx...
 	satauuid=$(blkid -o export "$2" | grep -w UUID)
+
+	# disable docker before start
+	systemctl is-active --quiet docker && systemctl stop docker
 
 	# write information to log
 	echo -e "\nOld UUID:  ${root_uuid}" >> $logfile
@@ -821,11 +834,14 @@ main()
 	LANG=C echo -e "$(date): Start ${0##*/}.\n" >> $logfile
 
 	# find real mmcblk device numbered 0, 1, 2 for eMMC, SD
+	# On some devices, the eMMC chip does not have a separate boot0(1) partition.
+	# Use the system interface to determine the SD or eMMC memory type.
 	for ret in $(find /dev -name 'mmcblk[0-2]' -and -type b)
 	do
-		if [ -b ${ret}boot0 ];then
+		if [ -b ${ret}boot0 ] || \
+		   [ "$(cat /sys/block/${ret#/dev/}/device/type 2>/dev/null)" == "MMC" ]; then
 			emmc_dev=$ret
-		else
+		elif [ "$(cat /sys/block/${ret#/dev/}/device/type 2>/dev/null)" == "SD" ]; then
 			sd_dev=$ret
 		fi
 	done

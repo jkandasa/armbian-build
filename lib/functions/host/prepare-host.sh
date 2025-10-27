@@ -121,6 +121,7 @@ function prepare_host_noninteractive() {
 
 	# @TODO: rpardini: this does not belong here, instead with the other templates, pre-configuration.
 	[[ ! -f "${USERPATCHES_PATH}"/customize-image.sh ]] && run_host_command_logged cp -pv "${SRC}"/config/templates/customize-image.sh.template "${USERPATCHES_PATH}"/customize-image.sh
+	[[ ! -f "${USERPATCHES_PATH}"/config-example.conf ]] && run_host_command_logged cp -pv "${SRC}"/config/templates/config-example.conf.template "${USERPATCHES_PATH}"/config-example.conf
 
 	if [[ -d "${USERPATCHES_PATH}" ]]; then
 		# create patches directory structure under USERPATCHES_PATH
@@ -179,10 +180,12 @@ function adaptative_prepare_host_dependencies() {
 		# big bag of stuff from before
 		bc binfmt-support
 		bison
+		bsdextrautils
 		libc6-dev make dpkg-dev gcc # build-essential, without g++
 		ca-certificates ccache cpio
 		device-tree-compiler dialog dirmngr dosfstools
 		dwarves # dwarves has been replaced by "pahole" and is now a transitional package
+		e2fsprogs
 		flex
 		gawk gnupg gpg
 		imagemagick # required for plymouth: converting images / spinners
@@ -192,7 +195,7 @@ function adaptative_prepare_host_dependencies() {
 		libncurses-dev libssl-dev libusb-1.0-0-dev
 		linux-base locales lsof
 		ncurses-base ncurses-term # for `make menuconfig`
-		ntpdate
+		ntpsec-ntpdate #this is a more secure ntpdate
 		patchutils pkg-config pv
 		"qemu-user-static" "arch-test"
 		rsync
@@ -207,7 +210,7 @@ function adaptative_prepare_host_dependencies() {
 		colorized-logs                           # for ansi2html, ansi2txt, pipetty
 		unzip zip pigz xz-utils pbzip2 lzop zstd # compressors et al
 		parted gdisk fdisk                       # partition tools @TODO why so many?
-		aria2 curl wget axel                     # downloaders et al
+		aria2 curl axel wget                     # downloaders et al
 		parallel                                 # do things in parallel (used for fast md5 hashing in initrd cache)
 		rdfind                                   # armbian-firmware-full/linux-firmware symlink creation step
 	)
@@ -224,6 +227,12 @@ function adaptative_prepare_host_dependencies() {
 
 	# Needed for some u-boot's, lest "tools/mkeficapsule.c:21:10: fatal error: gnutls/gnutls.h"
 	host_dependencies+=("libgnutls28-dev")
+
+	# Some versions of U-Boot do not require/import 'python3-setuptools' properly, so add them explicitly.
+	if [[ 'tag:v2022.04' == "${BOOTBRANCH:-}" || 'tag:v2022.07' == "${BOOTBRANCH:-}" ]]; then
+		display_alert "Adding package to 'host_dependencies'" "python3-setuptools" "info"
+		host_dependencies+=("python3-setuptools")
+	fi
 
 	### Python2 -- required for some older u-boot builds
 	# Debian newer than 'bookworm' and Ubuntu newer than 'lunar'/'mantic' does not carry python2 anymore; in this case some u-boot's might fail to build.
@@ -247,20 +256,26 @@ function adaptative_prepare_host_dependencies() {
 	fi
 
 	if [[ "${wanted_arch}" == "arm64" || "${wanted_arch}" == "all" ]]; then
-		host_dependencies+=("gcc-aarch64-linux-gnu") # from crossbuild-essential-arm64
+		# gcc-aarch64-linux-gnu: from crossbuild-essential-arm64
+		# gcc-arm-linux-gnueabi: necessary for rockchip64 (and maybe other too) ATF compilation
+		host_dependencies+=("gcc-aarch64-linux-gnu" "gcc-arm-linux-gnueabi")
 	fi
 
 	if [[ "${wanted_arch}" == "armhf" || "${wanted_arch}" == "all" ]]; then
-		host_dependencies+=("gcc-arm-linux-gnueabihf" "gcc-arm-linux-gnueabi") # from crossbuild-essential-armhf crossbuild-essential-armel
+		host_dependencies+=("gcc-arm-linux-gnueabihf") # from crossbuild-essential-armhf crossbuild-essential-armel
 	fi
 
 	if [[ "${wanted_arch}" == "riscv64" || "${wanted_arch}" == "all" ]]; then
 		host_dependencies+=("gcc-riscv64-linux-gnu") # crossbuild-essential-riscv64 is not even available "yet"
-		host_dependencies+=("debian-archive-keyring")
+	fi
+
+	if [[ "${wanted_arch}" == "loong64" ]]; then
+		host_dependencies+=("gcc-loongarch64-linux-gnu") # crossbuild-essential-loongarch64 is not even available "yet"
+		host_dependencies+=("debian-ports-archive-keyring")
 	fi
 
 	if [[ "${wanted_arch}" != "amd64" ]]; then
-		host_dependencies+=(libc6-amd64-cross) # Support for running x86 binaries (under qemu on other arches)
+		host_dependencies+=("libc6-amd64-cross") # Support for running x86 binaries (under qemu on other arches)
 	fi
 
 	if [[ "${KERNEL_COMPILER}" == "clang" ]]; then
