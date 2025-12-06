@@ -1,0 +1,243 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Armbian Build <info@armbian.com>
+Date: Wed, 4 Dec 2024 06:00:00 +0000
+Subject: Add RK3128-box board support and device tree to Makefile
+
+Adds RK3128-box target configuration and device tree compilation
+support for generic RK3128-based TV boxes.
+
+---
+ arch/arm/dts/Makefile                  |  3 +-
+ arch/arm/mach-rockchip/rk3128/Kconfig  |  5 +
+ board/rockchip/rk3128-box/Kconfig      | 15 ++
+ board/rockchip/rk3128-box/MAINTAINERS  |  6 +
+ board/rockchip/rk3128-box/Makefile     |  7 +
+ board/rockchip/rk3128-box/README       | 72 ++++++++++
+ board/rockchip/rk3128-box/rk3128-box.c | 21 +++
+ include/configs/rk3128-box.h           | 29 ++++
+ 8 files changed, 157 insertions(+), 1 deletion(-)
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index 111111111111..222222222222 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -64,7 +64,8 @@ dtb-$(CONFIG_ROCKCHIP_RK3036) += \
+ 	rk3036-kylin.dtb
+
+ dtb-$(CONFIG_ROCKCHIP_RK3128) += \
+-	rk3128-evb.dtb
++	rk3128-evb.dtb \
++	rk3128-box.dtb
+
+ dtb-$(CONFIG_ROCKCHIP_RK3188) += \
+ 	rk3188-radxarock.dtb
+diff --git a/arch/arm/mach-rockchip/rk3128/Kconfig b/arch/arm/mach-rockchip/rk3128/Kconfig
+index 111111111111..222222222222 100644
+--- a/arch/arm/mach-rockchip/rk3128/Kconfig
++++ b/arch/arm/mach-rockchip/rk3128/Kconfig
+@@ -11,6 +11,10 @@ config ROCKCHIP_BOOT_MODE_REG
+ config ROCKCHIP_STIMER_BASE
+ 	default 0x200440a0
+
++config TARGET_RK3128_BOX
++	bool "RK3128-BOX"
++	select BOARD_LATE_INIT
++
+ config SYS_SOC
+ 	default "rk3128"
+
+@@ -33,5 +37,6 @@ config TPL_TEXT_BASE
+         default 0x10081000
+
+ source "board/rockchip/evb_rk3128/Kconfig"
++source "board/rockchip/rk3128-box/Kconfig"
+
+ endif
+diff --git a/board/rockchip/rk3128-box/Kconfig b/board/rockchip/rk3128-box/Kconfig
+new file mode 100644
+index 000000000000..111111111111
+--- /dev/null
++++ b/board/rockchip/rk3128-box/Kconfig
+@@ -0,0 +1,15 @@
++if TARGET_RK3128_BOX
++
++config SYS_BOARD
++	default "rk3128-box"
++
++config SYS_VENDOR
++	default "rockchip"
++
++config SYS_CONFIG_NAME
++	default "rk3128-box"
++
++config BOARD_SPECIFIC_OPTIONS # dummy
++	def_bool y
++
++endif
+diff --git a/board/rockchip/rk3128-box/MAINTAINERS b/board/rockchip/rk3128-box/MAINTAINERS
+new file mode 100644
+index 000000000000..111111111111
+--- /dev/null
++++ b/board/rockchip/rk3128-box/MAINTAINERS
+@@ -0,0 +1,6 @@
++RK3128-BOX
++M:      Armbian Build <info@armbian.com>
++S:      Maintained
++F:      board/rockchip/rk3128-box
++F:      include/configs/rk3128-box.h
++F:      configs/rk3128-box_defconfig
+diff --git a/board/rockchip/rk3128-box/Makefile b/board/rockchip/rk3128-box/Makefile
+new file mode 100644
+index 000000000000..111111111111
+--- /dev/null
++++ b/board/rockchip/rk3128-box/Makefile
+@@ -0,0 +1,7 @@
++#
++# (C) Copyright 2024 Armbian
++#
++# SPDX-License-Identifier:     GPL-2.0+
++#
++
++obj-y	+= rk3128-box.o
+diff --git a/board/rockchip/rk3128-box/README b/board/rockchip/rk3128-box/README
+new file mode 100644
+index 000000000000..111111111111
+--- /dev/null
++++ b/board/rockchip/rk3128-box/README
+@@ -0,0 +1,72 @@
++RK3128-BOX U-Boot Support
++=========================
++
++This is a generic target for RK3128-based TV boxes with various configurations.
++
++Supported Features:
++-------------------
++- eMMC/eMCP storage (including SKHynix H9TP32A8JDBC)
++- LPDDR2/LPDDR3 RAM (auto-detected by DDR blob)
++- SD card boot
++- USB boot
++- Ethernet (RMII mode)
++- HDMI output
++- IR receiver
++- GPIO LEDs
++
++Hardware Compatibility:
++-----------------------
++This target works with generic RK3128 TV boxes, including those with:
++- RK3128 SoC (quad-core Cortex-A7)
++- Various RAM sizes (512MB - 2GB LPDDR2/LPDDR3)
++- eMMC storage (4GB - 16GB)
++- 10/100 Ethernet
++
++Building U-Boot:
++----------------
++
++Prerequisites:
++  > sudo apt-get install gcc-arm-linux-gnueabihf device-tree-compiler
++
++Get the source:
++  > git clone git://git.denx.de/u-boot.git
++  > cd u-boot
++
++Get DDR init blob and TEE binary:
++  > wget https://github.com/armbian/build/raw/main/packages/blobs/rockchip/rk3128_ddr_300MHz_v2.08.bin
++  > wget https://github.com/armbian/build/raw/main/packages/blobs/rockchip/rk3128_tee.bin
++
++Compile:
++  > export CROSS_COMPILE=arm-linux-gnueabihf-
++  > export ARCH=arm
++  > make rk3128-box_defconfig
++  > make ROCKCHIP_TPL=rk3128_ddr_300MHz_v2.08.bin TEE=rk3128_tee.bin
++
++Package the bootloader:
++  > tools/mkimage -n rk3128 -T rksd -d tpl/u-boot-tpl.bin idbloader.img
++  > cat spl/u-boot-spl.bin >> idbloader.img
++
++Flash to SD card:
++-----------------
++  > sudo dd if=idbloader.img of=/dev/sdX seek=64
++  > sudo dd if=u-boot.itb of=/dev/sdX seek=16384
++  > sudo sync
++
++Flash to eMMC:
++--------------
++Boot from SD card first, then:
++  > sudo dd if=idbloader.img of=/dev/mmcblk2 seek=64
++  > sudo dd if=u-boot.itb of=/dev/mmcblk2 seek=16384
++  > sudo sync
++
++Boot Priority:
++--------------
++1. SD card (mmc0)
++2. USB storage
++3. eMMC (mmc2)
++4. Network PXE
++
++For more details:
++-----------------
++https://docs.armbian.com/
++http://opensource.rock-chips.com/wiki_Boot_option
+diff --git a/board/rockchip/rk3128-box/rk3128-box.c b/board/rockchip/rk3128-box/rk3128-box.c
+new file mode 100644
+index 000000000000..111111111111
+--- /dev/null
++++ b/board/rockchip/rk3128-box/rk3128-box.c
+@@ -0,0 +1,21 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * (C) Copyright 2024 Armbian
++ *
++ * Board initialization for RK3128-based TV boxes
++ */
++
++#include <dm.h>
++#include <asm/io.h>
++#include <asm/arch-rockchip/uart.h>
++#include <led.h>
++
++int board_early_init_r(void) {
++
++	/* LED setup */
++	if (IS_ENABLED(CONFIG_LED))
++		led_default_state();
++
++	return 0;
++
++}
+diff --git a/include/configs/rk3128-box.h b/include/configs/rk3128-box.h
+new file mode 100644
+index 000000000000..111111111111
+--- /dev/null
++++ b/include/configs/rk3128-box.h
+@@ -0,0 +1,29 @@
++/* SPDX-License-Identifier: GPL-2.0+ */
++/*
++ * (C) Copyright 2024 Armbian
++ */
++
++#ifndef __CONFIG_H
++#define __CONFIG_H
++
++#include <configs/rk3128_common.h>
++
++#define ROCKCHIP_DEVICE_SETTINGS \
++	"stdin=serial,usbkbd\0" \
++	"stdout=serial,vidconsole\0" \
++	"stderr=serial,vidconsole\0" \
++	"fdt_high=0xffffffff\0" \
++	"initrd_high=0xffffffff\0"
++
++#undef BOOT_TARGETS
++#undef CFG_EXTRA_ENV_SETTINGS
++
++#define BOOT_TARGETS	"mmc0 usb mmc2 pxe dhcp"
++
++#define CFG_EXTRA_ENV_SETTINGS \
++	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
++	ENV_MEM_LAYOUT_SETTINGS \
++	ROCKCHIP_DEVICE_SETTINGS \
++	"boot_targets=" BOOT_TARGETS "\0"
++
++#endif
+--
+Armbian
