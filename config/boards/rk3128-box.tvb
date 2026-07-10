@@ -1,0 +1,17 @@
+# Rockchip RK3128 TV box (Cortex-A7 quad, 32-bit)
+# Target eMCP: SKHynix H9TP32A8JDBC (eMMC + LPDDR package)
+BOARD_NAME="rk3128-box"
+BOARD_VENDOR="rockchip"
+BOARDFAMILY="rockchip"
+BOARD_MAINTAINER=""
+INTRODUCED="2026"
+BOOTCONFIG="evb-rk3128_defconfig"
+BOOT_FDT_FILE="rockchip/rk3128-box.dtb"
+KERNEL_TARGET="current,edge"
+KERNEL_TEST_TARGET="current"
+BOOT_SOC="rk3128"
+SERIALCON="ttyS2"
+# RK3128 tops out at 1.2 GHz
+CPUMIN="216000"
+CPUMAX="1200000"
+GOVERNOR="ondemand"
