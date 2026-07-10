@@ -1,0 +1,321 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Generic Rockchip RK3128 TV box board
+ *
+ * Tuned for boxes with SKHynix H9TP32A8JDBC eMCP (eMMC + LPDDR package).
+ * Based on mainline rk3128.dtsi; hardware variants differ in Wi-Fi, LED and
+ * PHY wiring — use DT overlays for board-specific differences.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/pwm/pwm.h>
+#include "rk3128.dtsi"
+
+/ {
+	model = "Generic RK3128 TV Box (H9TP32A8JDBC eMCP)";
+	compatible = "rockchip,rk3128-box", "rockchip,rk3128";
+
+	aliases {
+		mmc0 = &emmc;
+		mmc1 = &sdmmc;
+		mmc2 = &sdio;
+		serial2 = &uart2;
+		ethernet0 = &gmac;
+	};
+
+	chosen {
+		stdout-path = "serial2:115200n8";
+	};
+
+	memory@60000000 {
+		device_type = "memory";
+		/* Upper bound; actual size is detected from firmware/DT updates */
+		reg = <0x60000000 0x40000000>;
+	};
+
+	vcc_sys: regulator-vcc-sys {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_sys";
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	vccio_3v3: regulator-vccio-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vccio_3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_sys>;
+	};
+
+	vccio_1v8: regulator-vccio-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "vccio_1v8";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vcc_sys>;
+	};
+
+	vcc_phy: regulator-vcc-phy {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc_phy";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+		regulator-boot-on;
+		vin-supply = <&vccio_3v3>;
+	};
+
+	vdd_arm: regulator-vdd-arm {
+		compatible = "pwm-regulator";
+		pwms = <&pwm1 0 25000 1>;
+		pwm-supply = <&vcc_sys>;
+		regulator-name = "vdd_arm";
+		regulator-min-microvolt = <1050000>;
+		regulator-max-microvolt = <1360000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	vdd_log: regulator-vdd-log {
+		compatible = "pwm-regulator";
+		pwms = <&pwm2 0 25000 1>;
+		pwm-supply = <&vcc_sys>;
+		regulator-name = "vdd_log";
+		regulator-min-microvolt = <1050000>;
+		regulator-max-microvolt = <1300000>;
+		regulator-always-on;
+		regulator-boot-on;
+	};
+
+	hdmi-connector {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi_connector_in: endpoint {
+				remote-endpoint = <&hdmi_connector_out>;
+			};
+		};
+	};
+
+	ir-receiver {
+		compatible = "gpio-ir-receiver";
+		gpios = <&gpio1 RK_PB3 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&ir_int>;
+		status = "okay";
+	};
+
+	gpio-leds {
+		compatible = "gpio-leds";
+
+		led-working {
+			/* Common working LED on many RK3128 boxes; may need overlay */
+			gpios = <&gpio3 RK_PC5 GPIO_ACTIVE_HIGH>;
+			label = "working";
+			default-state = "on";
+			linux,default-trigger = "heartbeat";
+			pinctrl-names = "default";
+			pinctrl-0 = <&led_working>;
+		};
+	};
+
+	sdio_pwrseq: sdio-pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		pinctrl-names = "default";
+		pinctrl-0 = <&wifi_enable_h>;
+		/*
+		 * Wi-Fi enable GPIO is board-dependent. Default matches common
+		 * RK312x TV box wiring (GPIO2_D2); override with overlay if needed.
+		 */
+		reset-gpios = <&gpio2 RK_PD2 GPIO_ACTIVE_LOW>;
+	};
+};
+
+/*
+ * Fixed RK3128-safe OPP voltages for PWM CPU rail on TV boxes.
+ * Drop awkward 696 MHz point; raise low OPPs above the PWM floor.
+ */
+&cpu_opp_table {
+	/delete-node/ opp-696000000;
+
+	opp-216000000 {
+		opp-microvolt = <1050000>;
+	};
+	opp-408000000 {
+		opp-microvolt = <1050000>;
+	};
+	opp-600000000 {
+		opp-microvolt = <1100000>;
+	};
+	opp-816000000 {
+		opp-microvolt = <1200000>;
+	};
+	opp-1008000000 {
+		opp-microvolt = <1200000>;
+	};
+	opp-1200000000 {
+		opp-microvolt = <1350000>;
+	};
+};
+
+&cpu0 {
+	cpu-supply = <&vdd_arm>;
+};
+
+&display_subsystem {
+	status = "okay";
+};
+
+/*
+ * SKHynix H9TP32A8JDBC eMCP: 8-bit eMMC with HS200 capability.
+ * Conservative defaults; raise max-frequency via overlay if stable on a given board.
+ */
+&emmc {
+	bus-width = <8>;
+	cap-mmc-highspeed;
+	mmc-hs200-1_8v;
+	non-removable;
+	no-sd;
+	no-sdio;
+	disable-wp;
+	keep-power-in-suspend;
+	max-frequency = <150000000>;
+	vmmc-supply = <&vccio_3v3>;
+	vqmmc-supply = <&vccio_1v8>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&emmc_clk &emmc_cmd &emmc_bus8>;
+	status = "okay";
+};
+
+&gmac {
+	clock_in_out = "output";
+	phy-supply = <&vcc_phy>;
+	phy-mode = "rmii";
+	assigned-clocks = <&cru SCLK_MAC_SRC>;
+	assigned-clock-rates = <50000000>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&rmii_pins>;
+	snps,reset-gpio = <&gpio2 RK_PD0 GPIO_ACTIVE_LOW>;
+	snps,reset-active-low;
+	snps,reset-delays-us = <0 10000 50000>;
+	/* Scan MDIO for the first PHY (address varies between box vendors) */
+	status = "okay";
+};
+
+&gpu {
+	mali-supply = <&vdd_log>;
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmi_out {
+	hdmi_connector_out: endpoint {
+		remote-endpoint = <&hdmi_connector_in>;
+	};
+};
+
+&pinctrl {
+	ir-receiver {
+		ir_int: ir-int {
+			rockchip,pins = <1 RK_PB3 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	leds {
+		led_working: led-working {
+			rockchip,pins = <3 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+
+	sdio-pwrseq {
+		wifi_enable_h: wifi-enable-h {
+			rockchip,pins = <2 RK_PD2 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+	};
+};
+
+&pwm1 {
+	status = "okay";
+};
+
+&pwm2 {
+	status = "okay";
+};
+
+&saradc {
+	vref-supply = <&vccio_1v8>;
+	status = "okay";
+};
+
+&sdio {
+	bus-width = <4>;
+	cap-sd-highspeed;
+	cap-sdio-irq;
+	keep-power-in-suspend;
+	mmc-pwrseq = <&sdio_pwrseq>;
+	non-removable;
+	no-mmc;
+	no-sd;
+	vmmc-supply = <&vccio_3v3>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdio_bus4 &sdio_cmd &sdio_clk>;
+	status = "okay";
+};
+
+&sdmmc {
+	bus-width = <4>;
+	cap-mmc-highspeed;
+	cap-sd-highspeed;
+	disable-wp;
+	vmmc-supply = <&vccio_3v3>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_bus4>;
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+
+&usb2phy {
+	status = "okay";
+};
+
+&usb2phy_host {
+	status = "okay";
+};
+
+&usb2phy_otg {
+	status = "okay";
+};
+
+&usb_host_ehci {
+	status = "okay";
+};
+
+&usb_host_ohci {
+	status = "okay";
+};
+
+&usb_otg {
+	status = "okay";
+};
+
+&vop {
+	status = "okay";
+};
