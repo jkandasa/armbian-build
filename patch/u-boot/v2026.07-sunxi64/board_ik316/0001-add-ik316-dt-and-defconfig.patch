@@ -1,0 +1,179 @@
+From: Jeeva Kandasamy <jkandasa@gmail.com>
+Subject: Add IK316 eMCP LPDDR3 board
+
+DRAM timings come from the stock boot0 header.
+The clock is 720 MHz.
+The type is LPDDR3.
+DCDC3 is 1.2 V for LPDDR3.
+The H616 driver ignores TPR1 and TPR13.
+Ethernet stays in the kernel DTB.
+
+diff --git a/configs/ik316_defconfig b/configs/ik316_defconfig
+new file mode 100644
+index 000000000..0d03224df
+--- /dev/null
++++ b/configs/ik316_defconfig
+@@ -0,0 +1,33 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_DEFAULT_DEVICE_TREE="allwinner/sun50i-h616-ik316"
++CONFIG_SPL=y
++CONFIG_SUNXI_DRAM_H616_LPDDR3=y
++CONFIG_DRAM_CLK=720
++CONFIG_DRAM_SUNXI_DX_ODT=0x06060606
++CONFIG_DRAM_SUNXI_DX_DRI=0x0d0d0d0d
++CONFIG_DRAM_SUNXI_CA_DRI=0x00000d0d
++CONFIG_DRAM_SUNXI_ODT_EN=0x00000001
++CONFIG_DRAM_SUNXI_TPR0=0x0
++CONFIG_DRAM_SUNXI_TPR1=0x80000000
++CONFIG_DRAM_SUNXI_TPR2=0x0
++CONFIG_DRAM_SUNXI_TPR6=0x2fa88080
++CONFIG_DRAM_SUNXI_TPR10=0x002f3359
++CONFIG_DRAM_SUNXI_TPR11=0xaa889967
++CONFIG_DRAM_SUNXI_TPR12=0xeeee8979
++CONFIG_MACH_SUN50I_H616=y
++CONFIG_MMC_SUNXI_SLOT_EXTRA=2
++CONFIG_R_I2C_ENABLE=y
++CONFIG_SPL_I2C=y
++CONFIG_SPL_SYS_I2C_LEGACY=y
++CONFIG_SYS_I2C_MVTWSI=y
++CONFIG_SYS_I2C_SLAVE=0x7f
++CONFIG_SYS_I2C_SPEED=100000
++CONFIG_SUPPORT_EMMC_BOOT=y
++CONFIG_PHY_REALTEK=y
++CONFIG_SUN8I_EMAC=y
++CONFIG_AXP313_POWER=y
++CONFIG_AXP_DCDC3_VOLT=1200
++CONFIG_USB_EHCI_HCD=y
++CONFIG_USB_OHCI_HCD=y
++CONFIG_USB_MUSB_GADGET=y
+diff --git a/dts/upstream/src/arm64/allwinner/sun50i-h616-ik316.dts b/dts/upstream/src/arm64/allwinner/sun50i-h616-ik316.dts
+new file mode 100644
+index 000000000..897889d24
+--- /dev/null
++++ b/dts/upstream/src/arm64/allwinner/sun50i-h616-ik316.dts
+@@ -0,0 +1,124 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * IK316 eMCP uses an H616 SoC.
++ * U-Boot boots from the SD card or the eMMC.
++ * DRAM timings live in the defconfig.
++ */
++
++/dts-v1/;
++
++#include "sun50i-h616.dtsi"
++
++#include <dt-bindings/gpio/gpio.h>
++
++/ {
++	model = "IK316 eMCP LPDDR3";
++	compatible = "ik,ik316", "allwinner,sun50i-h616";
++
++	aliases {
++		mmc0 = &mmc0;
++		/* The boot command scans mmc 1 for the eMMC. */
++		mmc1 = &mmc2;
++		serial0 = &uart0;
++	};
++
++	chosen {
++		stdout-path = "serial0:115200n8";
++	};
++
++	reg_vcc5v: vcc5v {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc-5v";
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		regulator-always-on;
++	};
++};
++
++&cpu0 {
++	cpu-supply = <&reg_dcdc2>;
++	status = "okay";
++};
++
++&cpu1 {
++	cpu-supply = <&reg_dcdc2>;
++	status = "okay";
++};
++
++&cpu2 {
++	cpu-supply = <&reg_dcdc2>;
++	status = "okay";
++};
++
++&cpu3 {
++	cpu-supply = <&reg_dcdc2>;
++	status = "okay";
++};
++
++&mmc0 {
++	vmmc-supply = <&reg_dldo1>;
++	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>; /* PF6 */
++	bus-width = <4>;
++	status = "okay";
++};
++
++&mmc2 {
++	vmmc-supply = <&reg_dldo1>;
++	bus-width = <8>;
++	non-removable;
++	cap-mmc-hw-reset;
++	status = "okay";
++};
++
++&r_i2c {
++	status = "okay";
++
++	axp313a: pmic@36 {
++		compatible = "x-powers,axp313a";
++		reg = <0x36>;
++		wakeup-source;
++
++		regulators {
++			reg_dcdc1: dcdc1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1100000>;
++				regulator-max-microvolt = <1100000>;
++				regulator-name = "vdd-gpu";
++			};
++
++			reg_dcdc2: dcdc2 {
++				regulator-always-on;
++				regulator-min-microvolt = <1000000>;
++				regulator-max-microvolt = <1000000>;
++				regulator-name = "vdd-cpu";
++			};
++
++			reg_dcdc3: dcdc3 {
++				regulator-always-on;
++				regulator-min-microvolt = <1200000>;
++				regulator-max-microvolt = <1200000>;
++				regulator-name = "vdd-dram";
++			};
++
++			reg_aldo1: aldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++				regulator-name = "vcc1v8";
++			};
++
++			reg_dldo1: dldo1 {
++				regulator-always-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++				regulator-name = "vcc3v3";
++			};
++		};
++	};
++};
++
++&uart0 {
++	pinctrl-names = "default";
++	pinctrl-0 = <&uart0_ph_pins>;
++	status = "okay";
++};

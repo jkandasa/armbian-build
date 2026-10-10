@@ -1,0 +1,65 @@
+Kernel 7.2 removes strncpy. Use sized_strscpy.
+
+--- a/hwif/sdio/sdio.c
++++ b/hwif/sdio/sdio.c
+@@ -14,6 +14,7 @@
+  */
+ 
+ #include <linux/version.h>
++#include <linux/string.h>
+ #include <linux/irq.h>
+ #include <linux/module.h>
+ #include <linux/vmalloc.h>
+@@ -1644,9 +1645,9 @@ static void _read_chip_id (struct ssv6xxx_sdio_glue *glue)
+         }
+     }
+     if (*c != 0) {
+-        strncpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
++        sized_strscpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
+         dev_info(glue->dev, "CHIP ID: %s \n", glue->tmp_data.chip_id);
+-        strncpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH);
++        sized_strscpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH + 1);
+         glue->tmp_data.short_chip_id[SSV6XXX_CHIP_ID_SHORT_LENGTH] = 0;
+     } else {
+         dev_err(glue->dev, "Failed to read chip ID");
+--- a/hwif/usb/usb.c
++++ b/hwif/usb/usb.c
+@@ -14,6 +14,7 @@
+  */
+ 
+ #include <linux/kernel.h>
++#include <linux/string.h>
+ #include <linux/errno.h>
+ #include <linux/init.h>
+ #include <linux/slab.h>
+@@ -660,9 +661,9 @@ static void _read_chip_id (struct ssv6xxx_usb_glue *glue)
+         }
+     }
+     if (*c != 0) {
+-        strncpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
++        sized_strscpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
+         dev_info(glue->dev, "CHIP ID: %s \n", glue->tmp_data.chip_id);
+-        strncpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH);
++        sized_strscpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH + 1);
+         glue->tmp_data.short_chip_id[SSV6XXX_CHIP_ID_SHORT_LENGTH] = 0;
+     } else {
+         dev_err(glue->dev, "Failed to read chip ID");
+--- a/smac/init.c
++++ b/smac/init.c
+@@ -14,6 +14,7 @@
+  */
+ 
+ #include <linux/module.h>
++#include <linux/string.h>
+ #include <linux/platform_device.h>
+ #include <linux/nl80211.h>
+ #include <linux/kthread.h>
+@@ -815,7 +816,7 @@ static int ssv6xxx_load_firmware(struct ssv_hw *sh)
+     if (sh->cfg.external_firmware_name[0] != 0x00) {
+         dev_dbg(sh->sc->dev, KERN_INFO "Forced to use firmware \"%s\".",
+                sh->cfg.external_firmware_name);
+-        strncpy(firmware_name, sh->cfg.external_firmware_name,
++        sized_strscpy(firmware_name, sh->cfg.external_firmware_name,
+                 SSV_FIRMWARE_MAX-1);
+     } else {
+         SSV_GET_FW_NAME(sh, firmware_name);
