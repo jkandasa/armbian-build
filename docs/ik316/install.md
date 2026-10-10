@@ -8,6 +8,15 @@ Build the image on the host.
 ./compile.sh build BOARD=ik316 BRANCH=edge BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=trixie
 ```
 
+Set `CPUTHREADS` to the number of compile jobs.
+The default is one and a half times the host CPU count.
+Use a positive integer.
+The same option applies to the kernel command and the U-Boot command.
+
+```bash
+./compile.sh build BOARD=ik316 BRANCH=edge BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=trixie CPUTHREADS=8
+```
+
 The image file is under `output/images/`.
 The file name contains `Ik316`.
 
