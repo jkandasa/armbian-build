@@ -1,0 +1,58 @@
+// SPDX-License-Identifier: GPL-2.0+
+/*
+ * RK3128 TV box U-Boot tree.
+ * UART2 (GPIO1_C2/C3) shares pins with SD data lines D0/D1.
+ * The SD driver muxes the pins to SD only while a command runs.
+ */
+
+/dts-v1/;
+
+#include "rk3128.dtsi"
+
+/ {
+	model = "Generic RK3128 TV box";
+	compatible = "rockchip,rk3128-box", "rockchip,rk3128";
+
+	aliases {
+		mmc0 = &emmc;
+		mmc1 = &sdmmc;
+	};
+
+	chosen {
+		stdout-path = &uart2;
+	};
+
+	memory@60000000 {
+		device_type = "memory";
+		reg = <0x60000000 0x40000000>;
+	};
+};
+
+&emmc {
+	/* The loader has set up the eMMC pins. Keep its mux. */
+	bus-width = <8>;
+	fifo-mode;
+	/*
+	 * U-Boot cannot tune the sample phase. At 50 MHz, file loads
+	 * get read errors. The kernel sets its own eMMC speed.
+	 */
+	max-frequency = <25000000>;
+	non-removable;
+	status = "okay";
+};
+
+&sdmmc {
+	pinctrl-names = "default";
+	pinctrl-0 = <&sdmmc_clk &sdmmc_cmd &sdmmc_pwren &sdmmc_bus4>;
+	bus-width = <4>;
+	broken-cd;
+	cap-sd-highspeed;
+	fifo-mode;
+	max-frequency = <25000000>;
+	rockchip,sd-uart-shared-pins;
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};

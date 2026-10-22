@@ -1,0 +1,72 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Armbian <info@armbian.com>
+Date: Sun, 18 Oct 2026 00:00:00 +0000
+Subject: arm: rockchip: rk3128: start the system timer in U-Boot proper
+
+RK3128 has no SPL, so rockchip_stimer_init() never runs.
+Start it only if the loader left the arch timer counter stopped.
+A stopped counter makes udelay() hang.
+
+---
+--- a/arch/arm/mach-rockchip/rk3128/Makefile
++++ b/arch/arm/mach-rockchip/rk3128/Makefile
+@@ -6,3 +6,4 @@
+ 
+ obj-y += syscon_rk3128.o
+ obj-y += clk_rk3128.o
++obj-y += rk3128.o
+--- a/arch/arm/mach-rockchip/rk3128/rk3128.c
++++ b/arch/arm/mach-rockchip/rk3128/rk3128.c
+@@ -0,0 +1,52 @@
++// SPDX-License-Identifier: GPL-2.0+
++/*
++ * RK3128 has no SPL. If the loader left the arch timer counter stopped,
++ * start the system timer that feeds it. Else leave it alone.
++ */
++
++#include <init.h>
++#include <asm/io.h>
++#include <linux/bitops.h>
++
++#define STIMER_LOAD_LOW		0x00
++#define STIMER_LOAD_HIGH	0x04
++#define STIMER_CONTROL		0x10
++#define STIMER_EN		BIT(0)
++
++static u64 read_cntpct(void)
++{
++	u32 lo, hi;
++
++	asm volatile("mrrc p15, 0, %0, %1, c14" : "=r"(lo), "=r"(hi));
++	return (u64)hi << 32 | lo;
++}
++
++static bool counter_runs(void)
++{
++	u64 start = read_cntpct();
++	int i;
++
++	for (i = 0; i < 100000; i++) {
++		if (read_cntpct() != start)
++			return true;
++	}
++	return false;
++}
++
++int arch_cpu_init(void)
++{
++	void __iomem *base = (void __iomem *)CONFIG_ROCKCHIP_STIMER_BASE;
++
++	if (counter_runs())
++		return 0;
++
++	/* CNTFRQ is writable in secure mode only. The miniloader runs U-Boot secure. */
++	asm volatile("mcr p15, 0, %0, c14, c0, 0"
++		     : : "r"(CONFIG_COUNTER_FREQUENCY));
++	writel(0, base + STIMER_CONTROL);
++	writel(0xffffffff, base + STIMER_LOAD_LOW);
++	writel(0xffffffff, base + STIMER_LOAD_HIGH);
++	writel(STIMER_EN, base + STIMER_CONTROL);
++
++	return 0;
++}

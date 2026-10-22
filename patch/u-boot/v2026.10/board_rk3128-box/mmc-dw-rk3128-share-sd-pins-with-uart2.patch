@@ -1,0 +1,152 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Armbian <info@armbian.com>
+Date: Sun, 18 Oct 2026 00:00:00 +0000
+Subject: mmc: rockchip_dw_mmc: RK3128 clock gates and SD pins shared with UART2
+
+Some RK3128 boards route the UART2 console to the SD D0/D1 pins.
+Mux the pins to SD only while a command runs.
+Enable it with the "rockchip,sd-uart-shared-pins" property.
+Also ungate the MMC clocks. The RK3128 clock driver has no gate control.
+
+---
+--- a/drivers/mmc/dw_mmc.c
++++ b/drivers/mmc/dw_mmc.c
+@@ -489,6 +489,17 @@
+ 	return ret;
+ }
+ 
++/* Board hooks around each command, e.g. for pins shared with a UART. */
++__weak void dwmci_board_cmd_start(struct dwmci_host *host,
++				  struct mmc_cmd *cmd)
++{
++}
++
++__weak void dwmci_board_cmd_end(struct dwmci_host *host,
++				struct mmc_cmd *cmd, int ret)
++{
++}
++
+ #ifdef CONFIG_DM_MMC
+ static int dwmci_send_cmd(struct udevice *dev, struct mmc_cmd *cmd,
+ 			  struct mmc_data *data)
+@@ -501,14 +512,19 @@
+ #endif
+ 	struct dwmci_host *host = mmc->priv;
+ 	const size_t buf_size = data ? DIV_ROUND_UP(data->blocks, 8) : 0;
++	int ret;
+ 
++	dwmci_board_cmd_start(host, cmd);
+ 	if (host->dma_64bit_address) {
+ 		ALLOC_CACHE_ALIGN_BUFFER(struct dwmci_idmac64, idmac, buf_size);
+-		return dwmci_send_cmd_common(host, cmd, data, idmac);
++		ret = dwmci_send_cmd_common(host, cmd, data, idmac);
+ 	} else {
+ 		ALLOC_CACHE_ALIGN_BUFFER(struct dwmci_idmac32, idmac, buf_size);
+-		return dwmci_send_cmd_common(host, cmd, data, idmac);
++		ret = dwmci_send_cmd_common(host, cmd, data, idmac);
+ 	}
++	dwmci_board_cmd_end(host, cmd, ret);
++
++	return ret;
+ }
+ 
+ static int dwmci_control_clken(struct dwmci_host *host, bool on)
+--- a/drivers/mmc/rockchip_dw_mmc.c
++++ b/drivers/mmc/rockchip_dw_mmc.c
+@@ -13,6 +13,7 @@
+ #include <pwrseq.h>
+ #include <syscon.h>
+ #include <asm/gpio.h>
++#include <asm/io.h>
+ #include <asm/arch-rockchip/clock.h>
+ #include <asm/arch-rockchip/periph.h>
+ #include <linux/delay.h>
+@@ -34,6 +35,60 @@
+ 	u32 minmax[2];
+ };
+ 
++#if IS_ENABLED(CONFIG_ROCKCHIP_RK3128)
++/*
++ * On some RK3128 boards UART2 TX/RX use GPIO1_C2/C3, the SD D0/D1 pins.
++ * Mux the pins to SD only while a command runs. The console stays usable.
++ */
++#define RK3128_GRF_GPIO1C_IOMUX	0x200080c0
++#define RK3128_UART2_LSR	0x20068014
++#define GPIO1C23_MASK		(0xf0 << 16)
++#define GPIO1C23_SDMMC		(GPIO1C23_MASK | 0x50)
++#define GPIO1C23_UART2		(GPIO1C23_MASK | 0xa0)
++
++static bool rk3128_sd_uart_shared(struct dwmci_host *host)
++{
++	return dev_read_bool(host->priv, "rockchip,sd-uart-shared-pins");
++}
++
++void dwmci_board_cmd_start(struct dwmci_host *host, struct mmc_cmd *cmd)
++{
++	int i;
++
++	if (!rk3128_sd_uart_shared(host))
++		return;
++	/* Let the UART send its last bits. */
++	for (i = 0; i < 10000 && !(readl(RK3128_UART2_LSR) & 0x40); i++)
++		udelay(1);
++	writel(GPIO1C23_SDMMC, RK3128_GRF_GPIO1C_IOMUX);
++}
++
++void dwmci_board_cmd_end(struct dwmci_host *host, struct mmc_cmd *cmd, int ret)
++{
++	if (rk3128_sd_uart_shared(host))
++		writel(GPIO1C23_UART2, RK3128_GRF_GPIO1C_IOMUX);
++}
++
++/*
++ * The RK3128 clock driver has no gate control. The miniloader can leave
++ * the MMC clocks gated, and a register access then stalls the bus.
++ */
++#define RK3128_CRU_CLKGATE(n)	(0x20000000 + 0xd0 + (n) * 4)
++#define RK3128_UNGATE(bit)	(1 << ((bit) + 16))
++
++static void rk3128_mmc_ungate_clocks(void)
++{
++	/* sclk_sdmmc, sclk_emmc */
++	writel(RK3128_UNGATE(11) | RK3128_UNGATE(14), RK3128_CRU_CLKGATE(2));
++	/* hclk_emmc_peri */
++	writel(RK3128_UNGATE(6), RK3128_CRU_CLKGATE(3));
++	/* hclk_sdmmc */
++	writel(RK3128_UNGATE(10), RK3128_CRU_CLKGATE(5));
++	/* hclk_emmc */
++	writel(RK3128_UNGATE(0), RK3128_CRU_CLKGATE(7));
++}
++#endif
++
+ static uint rockchip_dwmmc_get_mmc_clk(struct dwmci_host *host, uint freq)
+ {
+ 	struct udevice *dev = host->priv;
+@@ -158,7 +213,16 @@
+ 	if (host->buswidth == 8)
+ 		plat->cfg.host_caps |= MMC_MODE_4BIT;
+ 
+-	return dwmci_probe(dev);
++#if IS_ENABLED(CONFIG_ROCKCHIP_RK3128)
++	rk3128_mmc_ungate_clocks();
++#endif
++	ret = dwmci_probe(dev);
++#if IS_ENABLED(CONFIG_ROCKCHIP_RK3128)
++	/* Probe applied the SD pinctrl. Give the pins back to the console. */
++	dwmci_board_cmd_end(host, NULL, 0);
++#endif
++
++	return ret;
+ }
+ 
+ static int rockchip_dwmmc_bind(struct udevice *dev)
+--- a/include/dwmmc.h
++++ b/include/dwmmc.h
+@@ -341,4 +341,7 @@
+ extern const struct dm_mmc_ops dm_dwmci_ops;
+ #endif
+ 
++void dwmci_board_cmd_start(struct dwmci_host *host, struct mmc_cmd *cmd);
++void dwmci_board_cmd_end(struct dwmci_host *host, struct mmc_cmd *cmd, int ret);
++
+ #endif	/* __DWMMC_HW_H */

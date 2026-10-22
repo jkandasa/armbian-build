@@ -1,0 +1,6 @@
+verbosity=1
+extraargs=coherent_pool=2M
+bootlogo=false
+console=both
+fdtfile=rk3128-box.dtb
+overlay_prefix=rk3128

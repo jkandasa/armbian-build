@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Armbian <info@armbian.com>
+Date: Sun, 18 Oct 2026 00:00:00 +0000
+Subject: clk: rockchip: rk3128: set the SD and eMMC card clocks
+
+dw_mmc sets the card clock through SCLK_SDMMC and SCLK_EMMC.
+set_rate() returned -ENOENT for both, so the card clock stayed unset.
+Also keep the divider within its 6-bit field.
+
+---
+--- a/drivers/clk/rockchip/clk_rk3128.c
++++ b/drivers/clk/rockchip/clk_rk3128.c
+@@ -317,7 +317,8 @@
+ 	/* mmc clock defaulg div 2 internal, need provide double in cru */
+ 	src_clk_div = DIV_ROUND_UP(clk_general_rate / 2, freq);
+ 
+-	if (src_clk_div > 128) {
++	/* The divider field is 6 bits wide. */
++	if (src_clk_div > 64) {
+ 		src_clk_div = DIV_ROUND_UP(OSC_HZ / 2, freq);
+ 		mux = EMMC_SEL_24M;
+ 	} else {
+@@ -326,6 +327,7 @@
+ 
+ 	switch (periph) {
+ 	case HCLK_EMMC:
++	case SCLK_EMMC:
+ 		rk_clrsetreg(&cru->cru_clksel_con[12],
+ 			     EMMC_PLL_MASK | EMMC_DIV_MASK,
+ 			     mux << EMMC_PLL_SHIFT |
+@@ -520,6 +522,9 @@
+ 					      clk->id, rate);
+ 		break;
+ 	case HCLK_EMMC:
++	case SCLK_EMMC:
++	case HCLK_SDMMC:
++	case SCLK_SDMMC:
+ 		new_rate = rockchip_mmc_set_clk(priv->cru, gclk_rate,
+ 						clk->id, rate);
+ 		break;

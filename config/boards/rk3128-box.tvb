@@ -1,0 +1,16 @@
+# Rockchip RK3128 TV box (MXQ), quad Cortex-A7, 1 GB, 4 GB eMMC, SD or eMMC boot
+BOARD_NAME="rk3128-box"
+BOARD_VENDOR="rockchip"
+BOARDFAMILY="rockchip"
+BOARD_MAINTAINER=""
+INTRODUCED="2026"
+BOOTCONFIG="rk3128-box_defconfig"
+BOOT_FDT_FILE="rk3128-box.dtb"
+KERNEL_TARGET="current,edge"
+KERNEL_TEST_TARGET="current"
+BOOT_SOC="rk3128"
+# UART2 shares pins with the SD card and is off in Linux. tty1 skips the serial getty.
+SERIALCON="tty1"
+# The repo has packages with the same names and no rk3128-box.dtb. Hold the board packages.
+BSPFREEZE="${BSPFREEZE:-yes}"
+enable_extension "ssv6158"

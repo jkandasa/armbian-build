@@ -1,0 +1,267 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Armbian <info@armbian.com>
+Date: Tue, 21 Oct 2026 00:00:00 +0000
+Subject: drm/rockchip: inno_hdmi: add I2S audio support
+
+Register an HDMI codec through the DRM HDMI audio helper.
+Program the I2S input, the sample rate, and the N value.
+Send the audio infoframe and restore the setup after a mode set.
+Register values follow the inno_hdmi audio patch by Johan Jonker.
+
+---
+--- a/drivers/gpu/drm/rockchip/inno_hdmi.c
++++ b/drivers/gpu/drm/rockchip/inno_hdmi.c
+@@ -25,9 +25,12 @@
+ #include <drm/drm_probe_helper.h>
+ #include <drm/drm_simple_kms_helper.h>
+ 
++#include <drm/display/drm_hdmi_audio_helper.h>
+ #include <drm/display/drm_hdmi_helper.h>
+ #include <drm/display/drm_hdmi_state_helper.h>
+ 
++#include <sound/hdmi-codec.h>
++
+ #include "rockchip_drm_drv.h"
+ 
+ #define INNO_HDMI_MIN_TMDS_CLOCK  25000000U
+@@ -116,10 +119,12 @@
+ #define HDMI_AV_MUTE			0x05
+ #define m_AVMUTE_CLEAR			BIT(7)
+ #define m_AVMUTE_ENABLE			BIT(6)
++#define m_AUDIO_PD			BIT(2)
+ #define m_AUDIO_MUTE			BIT(1)
+ #define m_VIDEO_BLACK			BIT(0)
+ #define v_AVMUTE_CLEAR(n)		((n) << 7)
+ #define v_AVMUTE_ENABLE(n)		((n) << 6)
++#define v_AUDIO_PD(n)			((n) << 2)
+ #define v_AUDIO_MUTE(n)			((n) << 1)
+ #define v_VIDEO_MUTE(n)			((n) << 0)
+ 
+@@ -429,6 +434,13 @@
+ 	struct i2c_adapter *ddc;
+ 
+ 	const struct inno_hdmi_variant *variant;
++
++	/* Last I2S stream setup, restored after a mode set. */
++	struct {
++		unsigned int sample_rate;
++		unsigned int channels;
++		bool configured;
++	} audio;
+ };
+ 
+ struct inno_hdmi_connector_state {
+@@ -636,18 +648,31 @@
+ 	hdmi_modb(hdmi, HDMI_STATUS, m_MASK_INT_HOTPLUG, v_MASK_INT_HOTPLUG(1));
+ }
+ 
++static int inno_hdmi_frame_index(enum hdmi_infoframe_type type)
++{
++	switch (type) {
++	case HDMI_INFOFRAME_TYPE_AVI:
++		return INFOFRAME_AVI;
++	case HDMI_INFOFRAME_TYPE_AUDIO:
++		return INFOFRAME_AAI;
++	default:
++		return -EINVAL;
++	}
++}
++
+ static int inno_hdmi_disable_frame(struct drm_connector *connector,
+ 				   enum hdmi_infoframe_type type)
+ {
+ 	struct inno_hdmi *hdmi = connector_to_inno_hdmi(connector);
++	int index = inno_hdmi_frame_index(type);
+ 
+-	if (type != HDMI_INFOFRAME_TYPE_AVI) {
++	if (index < 0) {
+ 		drm_err(connector->dev,
+ 			"Unsupported infoframe type: %u\n", type);
+ 		return 0;
+ 	}
+ 
+-	hdmi_writeb(hdmi, HDMI_CONTROL_PACKET_BUF_INDEX, INFOFRAME_AVI);
++	hdmi_writeb(hdmi, HDMI_CONTROL_PACKET_BUF_INDEX, index);
+ 
+ 	return 0;
+ }
+@@ -659,7 +684,7 @@
+ 	struct inno_hdmi *hdmi = connector_to_inno_hdmi(connector);
+ 	ssize_t i;
+ 
+-	if (type != HDMI_INFOFRAME_TYPE_AVI) {
++	if (inno_hdmi_frame_index(type) < 0) {
+ 		drm_err(connector->dev,
+ 			"Unsupported infoframe type: %u\n", type);
+ 		return 0;
+@@ -678,6 +703,125 @@
+ 	.write_infoframe	= inno_hdmi_upload_frame,
+ };
+ 
++static int inno_hdmi_audio_config(struct inno_hdmi *hdmi)
++{
++	unsigned int channel, rate, n;
++
++	if (hdmi->audio.channels <= 2)
++		channel = I2S_CHANNEL_1_2;
++	else if (hdmi->audio.channels <= 4)
++		channel = I2S_CHANNEL_3_4;
++	else if (hdmi->audio.channels <= 6)
++		channel = I2S_CHANNEL_5_6;
++	else
++		channel = I2S_CHANNEL_7_8;
++
++	switch (hdmi->audio.sample_rate) {
++	case 32000:
++		rate = AUDIO_32K;
++		n = N_32K;
++		break;
++	case 44100:
++		rate = AUDIO_441K;
++		n = N_441K;
++		break;
++	case 48000:
++		rate = AUDIO_48K;
++		n = N_48K;
++		break;
++	case 88200:
++		rate = AUDIO_882K;
++		n = N_882K;
++		break;
++	case 96000:
++		rate = AUDIO_96K;
++		n = N_96K;
++		break;
++	case 176400:
++		rate = AUDIO_1764K;
++		n = N_1764K;
++		break;
++	case 192000:
++		rate = AUDIO_192K;
++		n = N_192K;
++		break;
++	default:
++		dev_err(hdmi->dev, "unsupported audio sample rate %u\n",
++			hdmi->audio.sample_rate);
++		return -EINVAL;
++	}
++
++	/* I2S input, clocked from the I2S bit clock (no MCLK). */
++	hdmi_writeb(hdmi, HDMI_AUDIO_CTRL1, v_CTS_SOURCE(CTS_SOURCE_INTERNAL) |
++		    v_DOWN_SAMPLE(DOWNSAMPLE_DISABLE) |
++		    v_AUDIO_SOURCE(AUDIO_SOURCE_IIS) |
++		    v_MCLK_ENABLE(0) | v_MCLK_RATIO(MCLK_256FS));
++	hdmi_writeb(hdmi, AUDIO_SAMPLE_RATE, rate);
++	hdmi_writeb(hdmi, AUDIO_I2S_MODE, v_I2S_MODE(I2S_STANDARD) |
++		    v_I2S_CHANNEL(channel));
++	hdmi_writeb(hdmi, AUDIO_I2S_MAP, 0x00);
++	hdmi_writeb(hdmi, AUDIO_I2S_SWAPS_SPDIF, 0);
++
++	hdmi_writeb(hdmi, AUDIO_N_H, (n >> 16) & 0x0f);
++	hdmi_writeb(hdmi, AUDIO_N_M, (n >> 8) & 0xff);
++	hdmi_writeb(hdmi, AUDIO_N_L, n & 0xff);
++
++	hdmi_writeb(hdmi, HDMI_AUDIO_CHANNEL_STATUS, v_AUDIO_STATUS_NLPCM(0));
++
++	return 0;
++}
++
++static int inno_hdmi_audio_prepare(struct drm_connector *connector,
++				   struct hdmi_codec_daifmt *fmt,
++				   struct hdmi_codec_params *hparms)
++{
++	struct inno_hdmi *hdmi = connector_to_inno_hdmi(connector);
++	int ret;
++
++	if (fmt->fmt != HDMI_I2S) {
++		dev_err(hdmi->dev, "unsupported audio format %d\n", fmt->fmt);
++		return -EINVAL;
++	}
++
++	hdmi->audio.sample_rate = hparms->sample_rate;
++	hdmi->audio.channels = hparms->channels;
++
++	ret = inno_hdmi_audio_config(hdmi);
++	if (ret)
++		return ret;
++	hdmi->audio.configured = true;
++
++	return drm_atomic_helper_connector_hdmi_update_audio_infoframe(connector,
++								       &hparms->cea);
++}
++
++static int inno_hdmi_audio_mute_stream(struct drm_connector *connector,
++				       bool enable, int direction)
++{
++	struct inno_hdmi *hdmi = connector_to_inno_hdmi(connector);
++
++	hdmi_modb(hdmi, HDMI_AV_MUTE, m_AUDIO_MUTE | m_AUDIO_PD,
++		  v_AUDIO_MUTE(enable) | v_AUDIO_PD(enable));
++
++	return 0;
++}
++
++static void inno_hdmi_audio_shutdown(struct drm_connector *connector)
++{
++	struct inno_hdmi *hdmi = connector_to_inno_hdmi(connector);
++
++	hdmi_modb(hdmi, HDMI_AV_MUTE, m_AUDIO_MUTE | m_AUDIO_PD,
++		  v_AUDIO_MUTE(1) | v_AUDIO_PD(1));
++	hdmi->audio.configured = false;
++	drm_atomic_helper_connector_hdmi_clear_audio_infoframe(connector);
++}
++
++static const struct drm_connector_hdmi_audio_funcs inno_hdmi_audio_funcs = {
++	.prepare	= inno_hdmi_audio_prepare,
++	.shutdown	= inno_hdmi_audio_shutdown,
++	.mute_stream	= inno_hdmi_audio_mute_stream,
++};
++
+ static int inno_hdmi_config_video_csc(struct inno_hdmi *hdmi)
+ {
+ 	struct drm_connector *connector = &hdmi->connector;
+@@ -839,6 +983,9 @@
+ 
+ 	drm_atomic_helper_connector_hdmi_update_infoframes(connector, state);
+ 
++	if (hdmi->audio.configured)
++		inno_hdmi_audio_config(hdmi);
++
+ 	/*
+ 	 * When IP controller have configured to an accurate video
+ 	 * timing, then the TMDS clock source would be switched to
+@@ -939,9 +1086,11 @@
+ inno_hdmi_connector_detect(struct drm_connector *connector, bool force)
+ {
+ 	struct inno_hdmi *hdmi = connector_to_inno_hdmi(connector);
++	bool plugged = hdmi_readb(hdmi, HDMI_STATUS) & m_HOTPLUG;
+ 
+-	return (hdmi_readb(hdmi, HDMI_STATUS) & m_HOTPLUG) ?
+-		connector_status_connected : connector_status_disconnected;
++	drm_connector_hdmi_audio_plugged_notify(connector, plugged);
++
++	return plugged ? connector_status_connected : connector_status_disconnected;
+ }
+ 
+ static int inno_hdmi_connector_get_modes(struct drm_connector *connector)
+@@ -1038,6 +1187,7 @@
+ {
+ 	struct drm_encoder *encoder = &hdmi->encoder.encoder;
+ 	struct device *dev = hdmi->dev;
++	int ret;
+ 
+ 	encoder->possible_crtcs = drm_of_find_possible_crtcs(drm, dev->of_node);
+ 
+@@ -1066,6 +1216,12 @@
+ 				 BIT(HDMI_COLORSPACE_RGB),
+ 				 8);
+ 
++	ret = drm_connector_hdmi_audio_init(&hdmi->connector, dev,
++					    &inno_hdmi_audio_funcs,
++					    8, 0, false, -1);
++	if (ret)
++		return ret;
++
+ 	drm_connector_attach_encoder(&hdmi->connector, encoder);
+ 
+ 	return 0;
