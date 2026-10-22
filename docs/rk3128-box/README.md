@@ -47,3 +47,19 @@ The factory remotes use NEC user codes 0xfe01, 0xff00, 0x1dcc, and 0x4040.
 The board packages use the official Armbian package names.
 The image freezes them with `apt-mark hold`.
 Update them only with debs from this build tree, see [install.md](install.md).
+
+## Photos
+
+The PCB top silkscreen is `RK3128_MXQ_EP_68`.
+The PCB bottom silkscreen is `FDX-M 2203`.
+
+| Photo                                                                  | Content                                         |
+| ---------------------------------------------------------------------- | ----------------------------------------------- |
+| [board-top.jpg](photos/board-top.jpg)                                  | Top side                                        |
+| [board-bottom.jpg](photos/board-bottom.jpg)                            | Bottom side                                     |
+| [soc-rk3128.jpg](photos/soc-rk3128.jpg)                                | Rockchip RK3128 SoC                             |
+| [emcp-skhynix-h9tp32a8jdbc.jpg](photos/emcp-skhynix-h9tp32a8jdbc.jpg) | SK hynix H9TP32A8JDBC, eMMC and LPDDR2 in one package |
+| [wifi-ssv6158.jpg](photos/wifi-ssv6158.jpg)                            | iComm SSV6158 Wi-Fi chip                        |
+| [ethernet-phy-dp83848.jpg](photos/ethernet-phy-dp83848.jpg)            | TI DP83848 Ethernet PHY                         |
+
+![Board top](photos/board-top.jpg)
