@@ -5,7 +5,6 @@ BOARDFAMILY="rk35xx"
 BOARD_MAINTAINER=""
 INTRODUCED="2023"
 BOOTCONFIG="orangepi-3b-rk3566_defconfig"
-BOOT_SOC="rk3566"
 KERNEL_TARGET="vendor,current,edge"
 FULL_DESKTOP="yes"
 BOOT_LOGO="desktop"
@@ -26,7 +25,7 @@ function post_family_config__orangepi3b_use_mainline_uboot() {
 	declare -g UBOOT_TARGET_MAP="BL31=${RKBIN_DIR}/${BL31_BLOB} ROCKCHIP_TPL=${RKBIN_DIR}/${DDR_BLOB};;u-boot-rockchip.bin u-boot-rockchip-spi.bin"
 
 	# Mainline overlays are rockchip-rk3566-*.dtbo. No vendor prefix matches; keep the family default there.
-	[[ "${BRANCH}" != "vendor" ]] && declare -g OVERLAY_PREFIX="rockchip-rk3566"
+	[[ "${BRANCH}" != vendor* ]] && declare -g OVERLAY_PREFIX="rockchip-rk3566"
 	return 0
 }
 
