@@ -33,7 +33,12 @@ case $BRANCH in
 		;;
 
 	edge)
-		declare -g KERNEL_MAJOR_MINOR="7.3" # Major and minor versions of this kernel.
+		# IK316 edge uses the newest final release until 7.3 is final.
+		if [[ "${BOARD}" == "ik316" ]]; then
+			declare -g KERNEL_MAJOR_MINOR="7.2"
+		else
+			declare -g KERNEL_MAJOR_MINOR="7.3" # Major and minor versions of this kernel.
+		fi
 		;;
 esac
 

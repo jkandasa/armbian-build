@@ -10,7 +10,9 @@ Build a headless image with this command.
 ```
 
 Use `BRANCH=current` for the 6.18 kernel.
-The edge branch builds the 7.3 kernel.
+The edge branch builds the newest final 7.2 kernel.
+Edge uses only final kernel releases, not release candidates.
+Move edge to 7.3 when 7.3 is final.
 
 ## Files
 
@@ -20,12 +22,15 @@ The edge branch builds the 7.3 kernel.
 | `extensions/ssv6x5x.sh`                                                               | Build and install `ssv6x5x`       |
 | `patch/misc/ssv6x5x/0001-replace-strncpy.patch`                                       | Replace `strncpy` with `strscpy`  |
 | `patch/kernel/archive/sunxi-6.18/dt_64/sun50i-h616-ik316.dts`                         | Kernel 6.18 board tree            |
+| `patch/kernel/archive/sunxi-7.2/dt_64/sun50i-h616-ik316.dts`                          | Kernel 7.2 board tree             |
 | `patch/kernel/archive/sunxi-7.3/dt_64/sun50i-h616-ik316.dts`                          | Kernel 7.3 board tree             |
+| `patch/kernel/archive/sunxi-7.2/`                                                     | Family patches for 7.2            |
+| `config/sources/families/include/sunxi64_common.inc`                                  | Pins ik316 edge to 7.2            |
 | `patch/u-boot/v2026.10-sunxi64/board_ik316/board-ik316-add-dt-and-defconfig.patch`    | U-Boot tree and DRAM              |
 | `patch/u-boot/v2026.10-sunxi64/board_ik316/sunxi-mmc-h616-emmc-controller-setup.patch` | eMMC host registers              |
 
-The two kernel trees are identical.
-Keep both copies identical.
+The three kernel trees are identical.
+Keep all copies identical.
 
 The board sets `BSPFREEZE` to `yes` by default.
 The image then holds the packages that the build made.
@@ -74,7 +79,8 @@ Ethernet comes up as `end0` at 100 Mb/s.
 `wlan0` comes up with `ssv6x5x` on kernel 7.2.9-edge.
 The eMMC runs at 50 MHz, 8 bits, DDR52.
 The CPU scales from 480 MHz to 1.512 GHz.
-The v2026.10 U-Boot and kernel 7.3 build.
+The v2026.10 U-Boot builds.
+The edge kernel moves to the newest final 7.2 release.
 They still need a test on the board.
 
 ## Known log messages
