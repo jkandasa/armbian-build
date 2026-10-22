@@ -11,7 +11,10 @@ Build a headless image with this command.
 ```
 
 Use `BRANCH=current` for the 6.18 kernel.
-Use `BRANCH=edge` for the 7.3 kernel.
+Use `BRANCH=edge` for the newest final 7.2 kernel.
+Edge uses only final kernel releases, not release candidates.
+`rockchip.conf` pins rk3128 edge to 7.2.
+Move edge to 7.3 when 7.3 is final.
 
 ## Files
 
@@ -28,9 +31,12 @@ Use `BRANCH=edge` for the 7.3 kernel.
 | `patch/misc/ssv6158/0002-build-in-kernel-tree.patch`                                    | In-tree Makefile and Kconfig           |
 | `patch/misc/ssv6158/0003-use-strscpy.patch`                                             | Replace `strncpy` for Linux 7.3        |
 | `patch/kernel/archive/rockchip-6.18/dt/rk3128-box.dts`                                  | Kernel 6.18 board tree                 |
+| `patch/kernel/archive/rockchip-7.2/dt/rk3128-box.dts`                                   | Kernel 7.2 board tree                  |
 | `patch/kernel/archive/rockchip-7.3/dt/rk3128-box.dts`                                   | Kernel 7.3 board tree                  |
 | `patch/kernel/archive/rockchip-6.18/drm-rockchip-inno-hdmi-add-audio-support.patch`     | HDMI audio, 6.18 driver                |
+| `patch/kernel/archive/rockchip-7.2/drm-bridge-inno-hdmi-add-audio-support.patch`        | HDMI audio, 7.2 bridge driver          |
 | `patch/kernel/archive/rockchip-7.3/drm-bridge-inno-hdmi-add-audio-support.patch`        | HDMI audio, 7.3 bridge driver          |
+| `patch/kernel/archive/rockchip-7.2/patches.armbian/general-rockchip-various-fixes.patch` | Rebased for 7.2.12                     |
 | `patch/u-boot/v2026.10/defconfig/rk3128-box_defconfig`                                  | U-Boot defconfig                       |
 | `patch/u-boot/v2026.10/dt_upstream_rockchip_arm/rk3128-box.dts`                         | U-Boot board tree                      |
 | `patch/u-boot/v2026.10/0000.patching_config.yaml`                                       | Copies 32-bit Rockchip trees           |
@@ -38,8 +44,8 @@ Use `BRANCH=edge` for the 7.3 kernel.
 | `patch/u-boot/v2026.10/board_rk3128-box/clk-rockchip-rk3128-set-sd-and-emmc-card-clocks.patch` | SD and eMMC card clocks        |
 | `patch/u-boot/v2026.10/board_rk3128-box/mmc-dw-rk3128-share-sd-pins-with-uart2.patch`   | MMC clock gates and shared pins        |
 
-The two kernel trees are identical.
-Keep both copies identical.
+The kernel trees are identical.
+Keep all copies identical.
 
 The board sets `BSPFREEZE` to `yes` by default.
 The image then holds the packages that the build made.
@@ -110,8 +116,8 @@ The tree enables the watchdog, the power key, and the infrared receiver.
 ## HDMI audio
 
 The 6.18 patch registers the codec with `drm_connector_hdmi_audio_init`.
-The 7.3 patch sets `DRM_BRIDGE_OP_HDMI_AUDIO` and the bridge audio callbacks.
-In 7.3 the HDMI driver is a DRM bridge.
+The 7.2 and 7.3 patches set `DRM_BRIDGE_OP_HDMI_AUDIO` and the bridge audio callbacks.
+In 7.2 and 7.3 the HDMI driver is a DRM bridge.
 Both patches program the I2S input, the sample rate, and the N value.
 Both patches send the audio infoframe.
 Both patches restore the audio setup after a mode set.
@@ -126,7 +132,7 @@ The extension copies the pinned driver `a2afa9d80568895edd8875841137103801b51859
 The extension builds the driver in the kernel tree as a module (`CONFIG_SSV6158=m`).
 The source is `https://github.com/wltechblog/wifi-ssv6158`.
 The pin keeps the kernel artifact hash stable.
-The patches port the driver to the kernel 6.18 and 7.3 APIs.
+The patches port the driver to the kernel 6.18, 7.2, and 7.3 APIs.
 The patches remove the exported symbols.
 Those symbols clash with the in-tree `ssv6051` driver.
 The build stops when the Kconfig line is missing.
@@ -144,9 +150,10 @@ The boot takes about 23 seconds to `multi-user.target`.
 Ethernet comes up as `end0` after a cold boot.
 `wlan0` associates with `ssv6158` on kernel 6.18.
 HDMI video and HDMI audio work on kernel 6.18.
-The edge image boots from eMMC on kernel 7.3.0-rc7.
-On edge, Ethernet, the Wi-Fi scan, HDMI video, HDMI audio, and frequency scaling work.
-On edge, the HDMI `Unsupported infoframe type` message does not appear.
+The 7.3.0-rc7 edge image froze at boot and when idle.
+Edge now uses kernel 7.2.12.
+The 7.2.12 edge image builds.
+The 7.2.12 edge image still needs a test on the board.
 S/PDIF output still needs a test.
 
 ## Known log messages

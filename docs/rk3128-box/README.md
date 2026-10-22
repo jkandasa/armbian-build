@@ -33,7 +33,10 @@ The running board confirms the SoC, the memory size, Ethernet, Wi-Fi, HDMI, and 
 | Serial console        | U-Boot only. Linux gives the pins to the SD card.   |
 
 The table applies to kernel 6.18.58.
-The edge image (kernel 7.3.0-rc7) boots from eMMC with the same results.
+Edge uses only final kernel releases.
+The edge image uses kernel 7.2.12.
+The 7.3.0-rc7 edge image froze at boot and when idle.
+The 7.2.12 edge image still needs a test on the board.
 
 ## Known limitations
 
