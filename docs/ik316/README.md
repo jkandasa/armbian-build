@@ -7,7 +7,9 @@ Read [changes.md](changes.md) for the source changes.
 Read [install.md](install.md) for install and update steps.
 
 The stock Android device tree and boot0 supply the pin and DRAM facts.
-The running board confirms the SoC, the memory size, Ethernet, and Wi-Fi.
+The running board confirms the SoC, the memory size, Ethernet, Wi-Fi, and the eMMC boot.
+The board packages use the official Armbian package names.
+The image freezes them with `apt-mark hold`, see [install.md](install.md).
 
 ## Photos
 

@@ -58,7 +58,7 @@ The PHY mode is RMII.
 The receive delay is 3100 ps.
 The transmit delay is 700 ps.
 The kernel device tree owns this node.
-U-Boot v2026.07 has no EMAC1 node.
+U-Boot v2026.10 has no EMAC1 node.
 
 ## Wi-Fi
 

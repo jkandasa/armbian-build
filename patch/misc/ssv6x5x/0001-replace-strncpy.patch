@@ -1,4 +1,4 @@
-Kernel 7.2 removes strncpy. Use sized_strscpy.
+Kernel 7.2 removes strncpy. Use strscpy.
 
 --- a/hwif/sdio/sdio.c
 +++ b/hwif/sdio/sdio.c
@@ -15,10 +15,10 @@ Kernel 7.2 removes strncpy. Use sized_strscpy.
      }
      if (*c != 0) {
 -        strncpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
-+        sized_strscpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
++        strscpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
          dev_info(glue->dev, "CHIP ID: %s \n", glue->tmp_data.chip_id);
 -        strncpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH);
-+        sized_strscpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH + 1);
++        strscpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH + 1);
          glue->tmp_data.short_chip_id[SSV6XXX_CHIP_ID_SHORT_LENGTH] = 0;
      } else {
          dev_err(glue->dev, "Failed to read chip ID");
@@ -37,10 +37,10 @@ Kernel 7.2 removes strncpy. Use sized_strscpy.
      }
      if (*c != 0) {
 -        strncpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
-+        sized_strscpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
++        strscpy(glue->tmp_data.chip_id, c, SSV6XXX_CHIP_ID_LENGTH);
          dev_info(glue->dev, "CHIP ID: %s \n", glue->tmp_data.chip_id);
 -        strncpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH);
-+        sized_strscpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH + 1);
++        strscpy(glue->tmp_data.short_chip_id, c, SSV6XXX_CHIP_ID_SHORT_LENGTH + 1);
          glue->tmp_data.short_chip_id[SSV6XXX_CHIP_ID_SHORT_LENGTH] = 0;
      } else {
          dev_err(glue->dev, "Failed to read chip ID");
@@ -59,7 +59,7 @@ Kernel 7.2 removes strncpy. Use sized_strscpy.
          dev_dbg(sh->sc->dev, KERN_INFO "Forced to use firmware \"%s\".",
                 sh->cfg.external_firmware_name);
 -        strncpy(firmware_name, sh->cfg.external_firmware_name,
-+        sized_strscpy(firmware_name, sh->cfg.external_firmware_name,
++        strscpy(firmware_name, sh->cfg.external_firmware_name,
                  SSV_FIRMWARE_MAX-1);
      } else {
          SSV_GET_FW_NAME(sh, firmware_name);

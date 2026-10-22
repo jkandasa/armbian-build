@@ -2,21 +2,24 @@ From: Jeeva Kandasamy <jkandasa@gmail.com>
 Subject: Program the H616 eMMC controller registers
 
 The H616 eMMC setup sets the timeout, CRC detect, and debug registers.
-U-Boot 2026.07 leaves those registers clear.
+U-Boot 2026.10 leaves those registers clear.
 Write them only on the eMMC host.
 The SD host keeps the stock reset.
 
 --- a/drivers/mmc/sunxi_mmc.c
 +++ b/drivers/mmc/sunxi_mmc.c
-@@ -483,6 +483,13 @@ static void sunxi_mmc_reset(void *regs)
+@@ -508,6 +508,16 @@ static void sunxi_mmc_reset(void *regs)
  		writel(SUNXI_MMC_THLDC_READ_THLD(512) |
  		       SUNXI_MMC_THLDC_WRITE_EN |
  		       SUNXI_MMC_THLDC_READ_EN, regs + SUNXI_MMC_THLDC);
 +
-+		/* Program the eMMC host only. */
++		/* Program the eMMC host only. The values come from the BSP. */
 +		if ((uintptr_t)regs == SUNXI_MMC2_BASE) {
++			/* TMOUT: maximum data and response timeouts */
 +			writel((0xffffffU << 8) | 0xff, regs + 0x08);
++			/* DBGC */
 +			writel(0xdeb, regs + 0x50);
++			/* CSDC: CRC status detect */
 +			writel(3, regs + 0x54);
 +		}
  	}

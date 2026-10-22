@@ -13,7 +13,7 @@ new file mode 100644
 index 000000000..0d03224df
 --- /dev/null
 +++ b/configs/ik316_defconfig
-@@ -0,0 +1,33 @@
+@@ -0,0 +1,31 @@
 +CONFIG_ARM=y
 +CONFIG_ARCH_SUNXI=y
 +CONFIG_DEFAULT_DEVICE_TREE="allwinner/sun50i-h616-ik316"
@@ -40,8 +40,6 @@ index 000000000..0d03224df
 +CONFIG_SYS_I2C_SLAVE=0x7f
 +CONFIG_SYS_I2C_SPEED=100000
 +CONFIG_SUPPORT_EMMC_BOOT=y
-+CONFIG_PHY_REALTEK=y
-+CONFIG_SUN8I_EMAC=y
 +CONFIG_AXP313_POWER=y
 +CONFIG_AXP_DCDC3_VOLT=1200
 +CONFIG_USB_EHCI_HCD=y
@@ -52,7 +50,7 @@ new file mode 100644
 index 000000000..897889d24
 --- /dev/null
 +++ b/dts/upstream/src/arm64/allwinner/sun50i-h616-ik316.dts
-@@ -0,0 +1,124 @@
+@@ -0,0 +1,96 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * IK316 eMCP uses an H616 SoC.
@@ -80,34 +78,6 @@ index 000000000..897889d24
 +	chosen {
 +		stdout-path = "serial0:115200n8";
 +	};
-+
-+	reg_vcc5v: vcc5v {
-+		compatible = "regulator-fixed";
-+		regulator-name = "vcc-5v";
-+		regulator-min-microvolt = <5000000>;
-+		regulator-max-microvolt = <5000000>;
-+		regulator-always-on;
-+	};
-+};
-+
-+&cpu0 {
-+	cpu-supply = <&reg_dcdc2>;
-+	status = "okay";
-+};
-+
-+&cpu1 {
-+	cpu-supply = <&reg_dcdc2>;
-+	status = "okay";
-+};
-+
-+&cpu2 {
-+	cpu-supply = <&reg_dcdc2>;
-+	status = "okay";
-+};
-+
-+&cpu3 {
-+	cpu-supply = <&reg_dcdc2>;
-+	status = "okay";
 +};
 +
 +&mmc0 {

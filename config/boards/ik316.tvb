@@ -12,3 +12,5 @@ KERNEL_TEST_TARGET="current"
 FORCE_BOOTSCRIPT_UPDATE="yes"
 OVERLAY_PREFIX="sun50i-h616"
 enable_extension "ssv6x5x"
+# The repo has packages with the same names and no IK316 device tree. Hold the board packages.
+BSPFREEZE="${BSPFREEZE:-yes}"

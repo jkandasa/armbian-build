@@ -10,41 +10,54 @@ Build a headless image with this command.
 ```
 
 Use `BRANCH=current` for the 6.18 kernel.
-The edge branch builds the 7.2 kernel.
+The edge branch builds the 7.3 kernel.
 
 ## Files
 
-| File                                                                              | Role                            |
-| --------------------------------------------------------------------------------- | ------------------------------- |
-| `config/boards/ik316.tvb`                                                         | Board entry and Wi-Fi extension |
-| `extensions/ssv6x5x.sh`                                                           | Build and install `ssv6x5x`     |
-| `patch/misc/ssv6x5x/0001-replace-strncpy.patch`                                   | Keep the chip name `SSV6006C`   |
-| `patch/kernel/archive/sunxi-6.18/dt_64/sun50i-h616-ik316.dts`                     | Kernel 6.18 board tree          |
-| `patch/kernel/archive/sunxi-7.2/dt_64/sun50i-h616-ik316.dts`                      | Kernel 7.2 board tree           |
-| `patch/u-boot/v2026.07-sunxi64/board_ik316/0001-add-ik316-dt-and-defconfig.patch` | U-Boot tree and DRAM            |
-| `patch/u-boot/v2026.07-sunxi64/board_ik316/0002-h616-emmc-controller-setup.patch` | eMMC host registers             |
+| File                                                                                  | Role                              |
+| ------------------------------------------------------------------------------------- | --------------------------------- |
+| `config/boards/ik316.tvb`                                                             | Board entry, Wi-Fi, package hold  |
+| `extensions/ssv6x5x.sh`                                                               | Build and install `ssv6x5x`       |
+| `patch/misc/ssv6x5x/0001-replace-strncpy.patch`                                       | Replace `strncpy` with `strscpy`  |
+| `patch/kernel/archive/sunxi-6.18/dt_64/sun50i-h616-ik316.dts`                         | Kernel 6.18 board tree            |
+| `patch/kernel/archive/sunxi-7.3/dt_64/sun50i-h616-ik316.dts`                          | Kernel 7.3 board tree             |
+| `patch/u-boot/v2026.10-sunxi64/board_ik316/board-ik316-add-dt-and-defconfig.patch`    | U-Boot tree and DRAM              |
+| `patch/u-boot/v2026.10-sunxi64/board_ik316/sunxi-mmc-h616-emmc-controller-setup.patch` | eMMC host registers              |
 
 The two kernel trees are identical.
 Keep both copies identical.
 
+The board sets `BSPFREEZE` to `yes` by default.
+The image then holds the packages that the build made.
+The repository has packages with the same names and no IK316 device tree.
+`BSPFREEZE=no` on the command line builds an image without the hold.
+
 ## U-Boot
 
+The U-Boot version is v2026.10.
 The defconfig selects LPDDR3 at 720 MHz.
 DCDC3 is 1200 mV.
+U-Boot has no Ethernet.
 The U-Boot aliases are `mmc0 = &mmc0` and `mmc1 = &mmc2`.
 The boot command scans `mmc 1` for the eMMC.
 The U-Boot tree does not enable the SDIO node.
+
+The eMMC patch name sorts after the family patches.
+The family patch `mmc-increase-stabilization-delay-1ms-to-20ms` changes the same function.
 The eMMC register writes run only for `SUNXI_MMC2_BASE`.
 The SD host keeps the stock reset.
-Register 0x08 receives the timeout value.
-Register 0x50 receives 0xdeb.
-Register 0x54 receives 3.
+
+| Register | Name | Value        |
+| -------- | ---- | ------------ |
+| 0x08     | TMOUT | 0xffffffff  |
+| 0x50     | DBGC | 0xdeb        |
+| 0x54     | CSDC | 3            |
 
 ## Wi-Fi driver
 
 The extension copies the pinned driver `43c2ede238b39ba3abb1129323a998495c6b8be9`.
 The pin keeps the kernel artifact hash stable.
-The patch replaces `strncpy` with `sized_strscpy`.
+The patch replaces `strncpy` with `strscpy`.
 The short chip buffer size is the length plus one.
 That size keeps the name `SSV6006C`.
 The build stops when the Kconfig line is missing.
@@ -56,7 +69,26 @@ The firmware package supplies both Wi-Fi files.
 ## Boot status
 
 The SD card image boots.
-Ethernet comes up as `end0`.
+The eMMC-only boot works with the v2026.07 U-Boot and kernel 7.2.9-edge.
+Ethernet comes up as `end0` at 100 Mb/s.
 `wlan0` comes up with `ssv6x5x` on kernel 7.2.9-edge.
-The eMMC root filesystem works when the SD bootloader starts it.
-An eMMC-only boot still needs a test with this U-Boot.
+The eMMC runs at 50 MHz, 8 bits, DDR52.
+The CPU scales from 480 MHz to 1.512 GHz.
+The v2026.10 U-Boot and kernel 7.3 build.
+They still need a test on the board.
+
+## Known log messages
+
+These kernel messages appear at each boot.
+They do not affect Ethernet, Wi-Fi, or the eMMC.
+The keymap module `rc-beelink-gs1` is in `/lib/modules`.
+
+| Message                                              | Cause                                          |
+| ---------------------------------------------------- | ---------------------------------------------- |
+| `supply vcc-pX not found, using dummy regulator`     | The tree sets no pin bank supplies             |
+| `IR keymap rc-beelink-gs1 not found`                 | The IR driver asks for the keymap at 1.1 s     |
+
+The stock tree gives only the PC bank voltage, 1.8 V.
+The other bank voltages are not known.
+A wrong supply sets a wrong pin bias and can stop the eMMC or Wi-Fi.
+Add the supplies only after a test on the board.
