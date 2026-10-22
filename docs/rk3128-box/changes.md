@@ -30,6 +30,7 @@ Move edge to 7.3 when 7.3 is final.
 | `patch/misc/ssv6158/0001-port-to-linux-6.18.patch`                                      | mac80211 and kernel API port           |
 | `patch/misc/ssv6158/0002-build-in-kernel-tree.patch`                                    | In-tree Makefile and Kconfig           |
 | `patch/misc/ssv6158/0003-use-strscpy.patch`                                             | Replace `strncpy` for Linux 7.3        |
+| `patch/misc/ssv6158/0004-disallow-stack-dma-buffers.patch`                              | No stack buffers for SDIO I/O          |
 | `patch/kernel/archive/rockchip-6.18/dt/rk3128-box.dts`                                  | Kernel 6.18 board tree                 |
 | `patch/kernel/archive/rockchip-7.2/dt/rk3128-box.dts`                                   | Kernel 7.2 board tree                  |
 | `patch/kernel/archive/rockchip-7.3/dt/rk3128-box.dts`                                   | Kernel 7.3 board tree                  |
@@ -139,6 +140,11 @@ The build stops when the Kconfig line is missing.
 The build stops when the Makefile line is missing.
 The image build stops when `ssv6158.ko` is absent.
 The SDIO alias loads `ssv6158` at boot.
+The driver used stack buffers for SDIO register I/O.
+With `CONFIG_VMAP_STACK`, this corrupted memory on kernel 7.x.
+The 7.x edge images froze when `ssv6158` loaded.
+Patch 0004 sets `CONFIG_MMC_DISALLOW_STACK`.
+The driver then uses buffers in its allocated state.
 The extension downloads `ssv6020-sw.bin` from the Radxa Allwinner BSP.
 The extension checks the firmware SHA-256.
 
@@ -150,10 +156,8 @@ The boot takes about 23 seconds to `multi-user.target`.
 Ethernet comes up as `end0` after a cold boot.
 `wlan0` associates with `ssv6158` on kernel 6.18.
 HDMI video and HDMI audio work on kernel 6.18.
-The 7.3.0-rc7 edge image froze at boot and when idle.
-Edge now uses kernel 7.2.12.
-The 7.2.12 edge image builds.
-The 7.2.12 edge image still needs a test on the board.
+Edge uses kernel 7.2.12.
+The 7.2.12 edge image boots, scans Wi-Fi, and passes 6 reboots.
 S/PDIF output still needs a test.
 
 ## Known log messages

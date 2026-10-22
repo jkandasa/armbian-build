@@ -1,0 +1,14 @@
+Use heap buffers for SDIO register I/O. Stack buffers break DMA with CONFIG_VMAP_STACK.
+
+diff -ruN a/config_common.mak b/config_common.mak
+--- a/config_common.mak
++++ b/config_common.mak
+@@ -68,7 +68,7 @@
+ #ccflags-y += -DSSV_SUPPORT_USB_LPM
+ 
+ # Don't use stack for sdio_memcpy_xxx()
+-#ccflags-y += -DCONFIG_MMC_DISALLOW_STACK
++ccflags-y += -DCONFIG_MMC_DISALLOW_STACK
+ 
+ # Collect Rx data skb and process in tasklet to achive TCP Delay ACK.
+ #ccflags-y += -DSMAC_RX_TASKLET

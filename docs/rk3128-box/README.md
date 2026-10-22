@@ -35,8 +35,8 @@ The running board confirms the SoC, the memory size, Ethernet, Wi-Fi, HDMI, and 
 The table applies to kernel 6.18.58.
 Edge uses only final kernel releases.
 The edge image uses kernel 7.2.12.
-The 7.3.0-rc7 edge image froze at boot and when idle.
-The 7.2.12 edge image still needs a test on the board.
+Early edge images froze when `ssv6158` loaded at boot.
+The 7.2.12 edge image boots, scans Wi-Fi, and passes 6 reboots.
 
 ## Known limitations
 
