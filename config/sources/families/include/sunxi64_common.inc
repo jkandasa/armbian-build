@@ -33,7 +33,7 @@ case $BRANCH in
 		;;
 
 	edge)
-		# IK316 edge uses the newest final release until 7.3 is final.
+		# IK316 edge uses the kernel.org stable release until 7.3 is stable.
 		if [[ "${BOARD}" == "ik316" ]]; then
 			declare -g KERNEL_MAJOR_MINOR="7.2"
 		else

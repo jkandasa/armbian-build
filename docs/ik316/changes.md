@@ -9,10 +9,10 @@ Build a headless image with this command.
 ./compile.sh build BOARD=ik316 BRANCH=edge BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=trixie
 ```
 
-Use `BRANCH=current` for the 6.18 kernel.
-The edge branch builds the newest final 7.2 kernel.
-Edge uses only final kernel releases, not release candidates.
-Move edge to 7.3 when 7.3 is final.
+Use `BRANCH=current` for the 6.18 longterm kernel.
+The edge branch builds the 7.2 stable kernel.
+Edge uses only kernel.org stable releases, not mainline releases or release candidates.
+Move edge to 7.3 when kernel.org lists 7.3 as stable.
 
 ## Files
 
