@@ -79,9 +79,10 @@ Ethernet comes up as `end0` at 100 Mb/s.
 `wlan0` comes up with `ssv6x5x` on kernel 7.2.9-edge.
 The eMMC runs at 50 MHz, 8 bits, DDR52.
 The CPU scales from 480 MHz to 1.512 GHz.
-The v2026.10 U-Boot builds.
-The edge kernel moves to the newest final 7.2 release.
-They still need a test on the board.
+Kernel 7.2.12-edge boots from the eMMC with the v2026.07 U-Boot.
+`ssv6x5x` loads and Ethernet comes up on 7.2.12-edge.
+The v2026.10 U-Boot builds. It is not tested on the board.
+Kernel 6.18.58-current builds. It is not tested on the board.
 
 ## Known log messages
 
