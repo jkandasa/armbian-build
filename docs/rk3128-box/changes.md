@@ -10,11 +10,11 @@ Build a headless image with this command.
 ./compile.sh build BOARD=rk3128-box BRANCH=current BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=trixie
 ```
 
-Use `BRANCH=current` for the 6.18 kernel.
-Use `BRANCH=edge` for the newest final 7.2 kernel.
-Edge uses only final kernel releases, not release candidates.
+Use `BRANCH=current` for the 6.18 longterm kernel.
+Use `BRANCH=edge` for the 7.2 stable kernel.
+Edge uses only kernel.org stable releases, not mainline releases or release candidates.
 `rockchip.conf` pins rk3128 edge to 7.2.
-Move edge to 7.3 when 7.3 is final.
+Move edge to 7.3 when kernel.org lists 7.3 as stable.
 
 ## Files
 
