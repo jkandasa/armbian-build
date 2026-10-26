@@ -256,24 +256,72 @@ Build U-Boot again only when a file under `patch/u-boot/v2026.10/` for this boar
 
 Copy `linux-u-boot-rk3128-box-current_*.deb` to the board.
 Install that deb on the board.
+The install copies the files to `/usr/lib/linux-u-boot-current-rk3128-box/`.
+The install does not write U-Boot to the disk.
 
 ```bash
 sudo apt-mark unhold linux-u-boot-rk3128-box-current
-sudo FORCE_UBOOT_UPDATE=yes dpkg -i linux-u-boot-rk3128-box-current_*.deb
+sudo dpkg -i linux-u-boot-rk3128-box-current_*.deb
 sudo apt-mark hold linux-u-boot-rk3128-box-current
 ```
 
-The package writes U-Boot to the root disk.
-The binary directory is `/usr/lib/linux-u-boot-current-rk3128-box/`.
-Replace `current` with `edge` on an edge image.
-Without `FORCE_UBOOT_UPDATE`, `dpkg -i` only installs the files.
-Write the installed files to a disk with the installer.
+The examples use the eMMC, `/dev/mmcblk1`.
+Use `/dev/mmcblk0` for the SD card.
+Check the name with `lsblk`.
+
+Back up the first 16 MiB of the disk.
+That area holds the loader, U-Boot, and the U-Boot copy.
 
 ```bash
-sudo armbian-install bootloader --target /dev/mmcblk1 --yes
+sudo dd if=/dev/mmcblk1 of=/root/uboot-backup.bin bs=512 count=32768
 ```
 
-Use `/dev/mmcblk0` for the SD card.
+Write U-Boot to the disk.
+
+```bash
+sudo bash -c 'source /usr/lib/u-boot/platform_install.sh && write_uboot_platform "$DIR" /dev/mmcblk1'
+```
+
+Compare the disk with the files before the reboot.
+Each line must show `ok`.
+
+```bash
+d=/usr/lib/linux-u-boot-current-rk3128-box
+for e in idbloader.bin:64 uboot.img:8192 uboot.img:16384; do
+	f=$d/${e%%:*}
+	a=$(sha256sum < "$f")
+	b=$(sudo dd if=/dev/mmcblk1 bs=512 skip=${e##*:} status=none | head -c "$(stat -c %s "$f")" | sha256sum)
+	[ "$a" = "$b" ] && echo "ok $e" || echo "MISMATCH $e"
+done
+```
+
+If a line shows `MISMATCH`, restore the backup. Do not reboot.
+The restore skips the partition table in sector 0.
+
+```bash
+sudo dd if=/root/uboot-backup.bin of=/dev/mmcblk1 bs=512 skip=64 seek=64 conv=fsync
+```
+
+Replace `current` with `edge` on an edge image.
+A bad U-Boot stops the boot.
+The backup does not help when Linux does not start.
+Keep an SD card with a working image near the board.
+
+### Why `FORCE_UBOOT_UPDATE=yes` does not work
+
+An earlier version of this page used this command.
+
+```bash
+sudo FORCE_UBOOT_UPDATE=yes dpkg -i linux-u-boot-rk3128-box-current_*.deb
+```
+
+The command installs the files, but it does not write U-Boot.
+The package `postinst` sources `/etc/armbian-release` before it reads the variable.
+That file has the line `FORCE_UBOOT_UPDATE=` with an empty value.
+The empty value replaces `yes` from the command line.
+The `postinst` reads an empty value as `no` and skips the write.
+The build writes the board setting to that file.
+The rk3128-box board does not set `FORCE_UBOOT_UPDATE`.
 
 ## Recover from a bad kernel
 
