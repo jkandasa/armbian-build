@@ -159,16 +159,59 @@ Those files set the DRAM timings and the eMMC boot device.
 
 Copy `linux-u-boot-ik316-edge_*.deb` to the board.
 Install that deb on the board.
+The install copies the files to `/usr/lib/linux-u-boot-edge-ik316/`.
+The install does not write U-Boot to the eMMC.
 
 ```bash
 sudo apt-mark unhold linux-u-boot-ik316-edge
-sudo FORCE_UBOOT_UPDATE=yes dpkg -i linux-u-boot-ik316-edge_*.deb
+sudo dpkg -i linux-u-boot-ik316-edge_*.deb
 sudo apt-mark hold linux-u-boot-ik316-edge
 ```
 
-The package writes U-Boot to the root disk.
-The binary directory is `/usr/lib/linux-u-boot-edge-ik316/`.
+Back up the current U-Boot.
+
+```bash
+sudo dd if=/dev/mmcblk2 of=/root/uboot-backup.bin bs=1k skip=8 count=1016
+```
+
+Write U-Boot to the eMMC.
+
+```bash
+sudo bash -c 'source /usr/lib/u-boot/platform_install.sh && write_uboot_platform "$DIR" /dev/mmcblk2'
+```
+
+Compare the eMMC with the file before the reboot.
+The two hashes must be the same.
+
+```bash
+f=/usr/lib/linux-u-boot-edge-ik316/u-boot-sunxi-with-spl.bin
+sha256sum < "$f"
+sudo dd if=/dev/mmcblk2 bs=1k skip=8 status=none | head -c "$(stat -c %s "$f")" | sha256sum
+```
+
+If the hashes differ, restore the backup. Do not reboot.
+
+```bash
+sudo dd if=/root/uboot-backup.bin of=/dev/mmcblk2 bs=1k seek=8 conv=fsync
+```
+
 Replace `edge` with `current` on a current image.
 A bad U-Boot on the eMMC stops the boot.
-Test a new U-Boot on an SD card first.
+The backup does not help when Linux does not start.
 Keep an SD card with a working image near the board.
+
+### Why `FORCE_UBOOT_UPDATE=yes` does not work
+
+An earlier version of this page used this command.
+
+```bash
+sudo FORCE_UBOOT_UPDATE=yes dpkg -i linux-u-boot-ik316-edge_*.deb
+```
+
+The command installs the files, but it does not write U-Boot.
+The package `postinst` sources `/etc/armbian-release` before it reads the variable.
+That file has the line `FORCE_UBOOT_UPDATE=` with an empty value.
+The empty value replaces `yes` from the command line.
+The `postinst` reads an empty value as `no` and skips the write.
+The build writes the board setting to that file.
+The ik316 board does not set `FORCE_UBOOT_UPDATE`.
