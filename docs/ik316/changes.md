@@ -10,9 +10,8 @@ Build a headless image with this command.
 ```
 
 Use `BRANCH=current` for the 6.18 longterm kernel.
-The edge branch builds the 7.2 stable kernel.
+The edge branch builds the 7.3 stable kernel.
 Edge uses only kernel.org stable releases, not mainline releases or release candidates.
-Move edge to 7.3 when kernel.org lists 7.3 as stable.
 
 ## Files
 
@@ -22,10 +21,7 @@ Move edge to 7.3 when kernel.org lists 7.3 as stable.
 | `extensions/ssv6x5x.sh`                                                               | Build and install `ssv6x5x`       |
 | `patch/misc/ssv6x5x/0001-replace-strncpy.patch`                                       | Replace `strncpy` with `strscpy`  |
 | `patch/kernel/archive/sunxi-6.18/dt_64/sun50i-h616-ik316.dts`                         | Kernel 6.18 board tree            |
-| `patch/kernel/archive/sunxi-7.2/dt_64/sun50i-h616-ik316.dts`                          | Kernel 7.2 board tree             |
 | `patch/kernel/archive/sunxi-7.3/dt_64/sun50i-h616-ik316.dts`                          | Kernel 7.3 board tree             |
-| `patch/kernel/archive/sunxi-7.2/`                                                     | Family patches for 7.2            |
-| `config/sources/families/include/sunxi64_common.inc`                                  | Pins ik316 edge to 7.2            |
 | `patch/u-boot/v2026.10-sunxi64/board_ik316/board-ik316-add-dt-and-defconfig.patch`    | U-Boot tree and DRAM              |
 | `patch/u-boot/v2026.10-sunxi64/board_ik316/sunxi-mmc-h616-emmc-controller-setup.patch` | eMMC host registers              |
 
@@ -83,6 +79,7 @@ Kernel 7.2.12-edge boots from the eMMC with the v2026.07 U-Boot.
 `ssv6x5x` loads and Ethernet comes up on 7.2.12-edge.
 The eMMC boot works with the v2026.10 U-Boot, TF-A lts-v2.14.11, and kernel 7.2.12-edge.
 Kernel 6.18.58-current builds. It is not tested on the board.
+Kernel 6.18.60-current and 7.3.1-edge build. They are not tested on the board.
 
 ## Known log messages
 
