@@ -11,10 +11,8 @@ Build a headless image with this command.
 ```
 
 Use `BRANCH=current` for the 6.18 longterm kernel.
-Use `BRANCH=edge` for the 7.2 stable kernel.
+Use `BRANCH=edge` for the 7.3 stable kernel.
 Edge uses only kernel.org stable releases, not mainline releases or release candidates.
-`rockchip.conf` pins rk3128 edge to 7.2.
-Move edge to 7.3 when kernel.org lists 7.3 as stable.
 
 ## Files
 
@@ -32,12 +30,9 @@ Move edge to 7.3 when kernel.org lists 7.3 as stable.
 | `patch/misc/ssv6158/0003-use-strscpy.patch`                                             | Replace `strncpy` for Linux 7.3        |
 | `patch/misc/ssv6158/0004-disallow-stack-dma-buffers.patch`                              | No stack buffers for SDIO I/O          |
 | `patch/kernel/archive/rockchip-6.18/dt/rk3128-box.dts`                                  | Kernel 6.18 board tree                 |
-| `patch/kernel/archive/rockchip-7.2/dt/rk3128-box.dts`                                   | Kernel 7.2 board tree                  |
 | `patch/kernel/archive/rockchip-7.3/dt/rk3128-box.dts`                                   | Kernel 7.3 board tree                  |
 | `patch/kernel/archive/rockchip-6.18/drm-rockchip-inno-hdmi-add-audio-support.patch`     | HDMI audio, 6.18 driver                |
-| `patch/kernel/archive/rockchip-7.2/drm-bridge-inno-hdmi-add-audio-support.patch`        | HDMI audio, 7.2 bridge driver          |
 | `patch/kernel/archive/rockchip-7.3/drm-bridge-inno-hdmi-add-audio-support.patch`        | HDMI audio, 7.3 bridge driver          |
-| `patch/kernel/archive/rockchip-7.2/patches.armbian/general-rockchip-various-fixes.patch` | Rebased for 7.2.12                     |
 | `patch/u-boot/v2026.10/defconfig/rk3128-box_defconfig`                                  | U-Boot defconfig                       |
 | `patch/u-boot/v2026.10/dt_upstream_rockchip_arm/rk3128-box.dts`                         | U-Boot board tree                      |
 | `patch/u-boot/v2026.10/0000.patching_config.yaml`                                       | Copies 32-bit Rockchip trees           |
@@ -117,8 +112,8 @@ The tree enables the watchdog, the power key, and the infrared receiver.
 ## HDMI audio
 
 The 6.18 patch registers the codec with `drm_connector_hdmi_audio_init`.
-The 7.2 and 7.3 patches set `DRM_BRIDGE_OP_HDMI_AUDIO` and the bridge audio callbacks.
-In 7.2 and 7.3 the HDMI driver is a DRM bridge.
+The 7.3 patch sets `DRM_BRIDGE_OP_HDMI_AUDIO` and the bridge audio callbacks.
+In 7.3 the HDMI driver is a DRM bridge.
 Both patches program the I2S input, the sample rate, and the N value.
 Both patches send the audio infoframe.
 Both patches restore the audio setup after a mode set.
@@ -133,7 +128,7 @@ The extension copies the pinned driver `a2afa9d80568895edd8875841137103801b51859
 The extension builds the driver in the kernel tree as a module (`CONFIG_SSV6158=m`).
 The source is `https://github.com/wltechblog/wifi-ssv6158`.
 The pin keeps the kernel artifact hash stable.
-The patches port the driver to the kernel 6.18, 7.2, and 7.3 APIs.
+The patches port the driver to the kernel 6.18 and 7.3 APIs.
 The patches remove the exported symbols.
 Those symbols clash with the in-tree `ssv6051` driver.
 The build stops when the Kconfig line is missing.
@@ -156,8 +151,8 @@ The boot takes about 23 seconds to `multi-user.target`.
 Ethernet comes up as `end0` after a cold boot.
 `wlan0` associates with `ssv6158` on kernel 6.18.
 HDMI video and HDMI audio work on kernel 6.18.
-Edge uses kernel 7.2.12.
 The 7.2.12 edge image boots, scans Wi-Fi, and passes 6 reboots.
+Edge now uses kernel 7.3.1. The 7.3.1 edge image is not tested on the board.
 S/PDIF output still needs a test.
 
 ## Known log messages

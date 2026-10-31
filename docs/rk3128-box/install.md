@@ -25,7 +25,7 @@ The same option applies to the kernel command and the U-Boot command.
 ./compile.sh build BOARD=rk3128-box BRANCH=current BUILD_DESKTOP=no BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=trixie CPUTHREADS=18
 ```
 
-Use `BRANCH=edge` for the 7.2 stable kernel.
+Use `BRANCH=edge` for the 7.3 stable kernel.
 The board sets `BSPFREEZE=yes`.
 The image then holds the board packages.
 Add `BSPFREEZE=no` to build an image without the hold.
