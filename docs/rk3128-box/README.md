@@ -37,7 +37,8 @@ Edge uses only kernel.org stable releases.
 The edge image uses kernel 7.3.1.
 Early edge images froze when `ssv6158` loaded at boot.
 The 7.2.12 edge image boots, scans Wi-Fi, and passes 6 reboots.
-The 7.3.1 edge image is not tested on the board.
+Edge 7.3.1 boots, connects Wi-Fi, and plays HDMI audio.
+Edge 7.3.1 passes at least 5 reboots and 30 minutes idle.
 
 ## Known limitations
 

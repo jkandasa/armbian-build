@@ -152,7 +152,9 @@ Ethernet comes up as `end0` after a cold boot.
 `wlan0` associates with `ssv6158` on kernel 6.18.
 HDMI video and HDMI audio work on kernel 6.18.
 The 7.2.12 edge image boots, scans Wi-Fi, and passes 6 reboots.
-Edge now uses kernel 7.3.1. The 7.3.1 edge image is not tested on the board.
+Edge now uses kernel 7.3.1.
+Kernel 7.3.1-edge boots, connects Wi-Fi, and plays HDMI audio on both channels.
+Kernel 7.3.1-edge passes at least 5 reboots and 30 minutes idle.
 S/PDIF output still needs a test.
 
 ## Known log messages
@@ -167,3 +169,7 @@ They do not affect the board.
 | `of_i2c: modalias failure on /hdmi@20034000/ports`   | The HDMI DDC bus scans the HDMI node children  |
 | `Unsupported infoframe type: 131`                    | The 6.18 HDMI driver has no SPD infoframe      |
 | `IPv6: MLD: clamping QRV from 1 to 2!`               | The router sends a low MLD robustness value    |
+| `pixel format with alpha exposed but blend mode not setup` | The VOP planes set no blend mode         |
+| `supply vusb_d not found, using dummy regulator`     | The board tree has no USB PHY supplies         |
+| `No valid TOPs array specified`                      | The watchdog uses the default timeout table    |
+| `using zero-initialized flat cache`                  | The 7.3 I2S regmap has no register defaults    |
