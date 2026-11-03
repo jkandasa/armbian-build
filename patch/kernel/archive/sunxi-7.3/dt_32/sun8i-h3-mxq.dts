@@ -1,0 +1,230 @@
+// SPDX-License-Identifier: (GPL-2.0+ or MIT)
+/*
+ * MXQ H3 TV box, PCB Q44_V4.1_20210120.
+ * Based on the Sunvell R69 DTS and the factory Android DT.
+ */
+
+/dts-v1/;
+#include "sun8i-h3.dtsi"
+#include "sunxi-common-regulators.dtsi"
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/pinctrl/sun4i-a10.h>
+#include <dt-bindings/thermal/thermal.h>
+
+/ {
+	model = "MXQ H3 Q44";
+	compatible = "mxq,mxq-h3", "allwinner,sun8i-h3";
+
+	aliases {
+		ethernet0 = &emac;
+		ethernet1 = &wlan;
+		serial0 = &uart0;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+
+	connector {
+		compatible = "hdmi-connector";
+		type = "a";
+
+		port {
+			hdmi_con_in: endpoint {
+				remote-endpoint = <&hdmi_out_con>;
+			};
+		};
+	};
+
+	leds {
+		compatible = "gpio-leds";
+
+		led-0 {
+			label = "mxq-h3:blue:status";
+			gpios = <&pio 0 15 GPIO_ACTIVE_HIGH>; /* PA15 */
+			default-state = "on";
+		};
+
+		led-1 {
+			label = "mxq-h3:red:standby";
+			gpios = <&r_pio 0 10 GPIO_ACTIVE_HIGH>; /* PL10 */
+			default-state = "off";
+		};
+	};
+
+	reg_vcc_wifi: vcc-wifi-regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-wifi";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&r_pio 0 7 GPIO_ACTIVE_HIGH>; /* PL7 */
+		startup-delay-us = <70000>;
+		enable-active-high;
+	};
+
+	wifi_pwrseq: pwrseq {
+		compatible = "mmc-pwrseq-simple";
+		reset-gpios = <&r_pio 0 0 GPIO_ACTIVE_LOW>; /* PL0 */
+		post-power-on-delay-ms = <200>;
+	};
+};
+
+&codec {
+	allwinner,audio-routing =
+		"Line Out", "LINEOUT",
+		"MIC1", "Mic",
+		"Mic",  "MBIAS";
+	status = "okay";
+};
+
+/*
+ * The board has no known CPU voltage control.
+ * With PL6 as a GPIO regulator and OPPs up to 1.2 GHz, the kernel crashed under load.
+ * The factory boot0 runs the CPU at 1008 MHz.
+ */
+&cpu0_opp_table {
+	/delete-node/ opp-1104000000;
+	/delete-node/ opp-1200000000;
+	/delete-node/ opp-1296000000;
+	/delete-node/ opp-1368000000;
+};
+
+&de {
+	status = "okay";
+};
+
+&ehci0 {
+	status = "okay";
+};
+
+&ehci1 {
+	status = "okay";
+};
+
+&ehci2 {
+	status = "okay";
+};
+
+&ehci3 {
+	status = "okay";
+};
+
+&emac {
+	phy-handle = <&int_mii_phy>;
+	phy-mode = "mii";
+	allwinner,leds-active-low;
+	status = "okay";
+};
+
+&hdmi {
+	status = "okay";
+};
+
+&hdmi_out {
+	hdmi_out_con: endpoint {
+		remote-endpoint = <&hdmi_con_in>;
+	};
+};
+
+&i2s2 {
+	status = "okay";
+};
+
+&ir {
+	pinctrl-names = "default";
+	pinctrl-0 = <&r_ir_rx_pin>;
+	status = "okay";
+};
+
+&mmc0 {
+	vmmc-supply = <&reg_vcc3v3>;
+	bus-width = <4>;
+	cd-gpios = <&pio 5 6 GPIO_ACTIVE_LOW>; /* PF6 */
+	status = "okay";
+};
+
+/* iComm SSV6256P SDIO Wi-Fi */
+&mmc1 {
+	vmmc-supply = <&reg_vcc_wifi>;
+	mmc-pwrseq = <&wifi_pwrseq>;
+	bus-width = <4>;
+	non-removable;
+	status = "okay";
+
+	wlan: wifi@1 {
+		reg = <1>;
+		interrupt-parent = <&pio>;
+		interrupts = <0 11 IRQ_TYPE_EDGE_RISING>; /* PA11 */
+		interrupt-names = "host-wake";
+	};
+};
+
+&mmc2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&mmc2_8bit_pins>;
+	vmmc-supply = <&reg_vcc3v3>;
+	bus-width = <8>;
+	non-removable;
+	cap-mmc-hw-reset;
+	status = "okay";
+};
+
+&mmc2_8bit_pins {
+	/* Increase current from 30mA to 40mA for DDR eMMC */
+	allwinner,drive = <SUN4I_PINCTRL_40_MA>;
+};
+
+&ohci0 {
+	status = "okay";
+};
+
+&ohci1 {
+	status = "okay";
+};
+
+&ohci2 {
+	status = "okay";
+};
+
+&ohci3 {
+	status = "okay";
+};
+
+&sound_hdmi {
+	status = "okay";
+};
+
+&uart0 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart0_pa_pins>;
+	status = "okay";
+};
+
+&usb_otg {
+	dr_mode = "host";
+	status = "okay";
+};
+
+&usbphy {
+	status = "okay";
+};
+
+/*
+ * Cooling states: 0 = 1008, 1 = 960, 2 = 816, 3 = 648, 4 = 480 MHz.
+ * The removed trips limited the CPU above 1008 MHz only.
+ */
+&{/thermal-zones/cpu_thermal/cooling-maps} {
+	/delete-node/ cpu_warm_limit_cpu;
+	/delete-node/ cpu_hot_pre_limit_cpu;
+	/delete-node/ cpu_hot_limit_cpu;
+
+	cpu_very_hot_pre_limit_cpu {
+		cooling-device = <&cpu0 1 2>;
+	};
+
+	cpu_very_hot_limit_cpu {
+		cooling-device = <&cpu0 3 THERMAL_NO_LIMIT>;
+	};
+};

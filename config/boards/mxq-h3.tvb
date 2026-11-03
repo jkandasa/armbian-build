@@ -1,0 +1,16 @@
+# Allwinner H3 quad core 1GB RAM SoC 8GB eMMC SSV6256P WiFi 10/100 Ethernet TV box
+BOARD_NAME="MXQ H3 Q44"
+BOARD_VENDOR="allwinner"
+BOARDFAMILY="sun8i"
+BOARD_MAINTAINER=""
+INTRODUCED="2021"
+# U-Boot v2026.07 does not boot this board. v2024.01 with the H3 clock patches does.
+BOOTBRANCH="tag:v2024.01"
+BOOTPATCHDIR="u-boot-sunxi"
+BOOTCONFIG="orangepi_pc_plus_defconfig"
+BOOT_FDT_FILE="sun8i-h3-mxq.dtb"
+KERNEL_TARGET="current,edge"
+KERNEL_TEST_TARGET="edge"
+enable_extension "ssv6x5x"
+# The repo has packages with the same names and no MXQ H3 device tree. Hold the board packages.
+BSPFREEZE="${BSPFREEZE:-yes}"
