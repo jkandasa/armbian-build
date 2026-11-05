@@ -1,0 +1,11 @@
+[Unit]
+Description=MXQ H3 blue LED for the Wi-Fi IPv4 link
+
+[Service]
+ExecStart=/usr/lib/mxq-h3/mxq-h3-wifi-led
+ExecStopPost=-/bin/sh -c 'echo 0 > /sys/class/leds/mxq-h3:blue:wifi/brightness'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

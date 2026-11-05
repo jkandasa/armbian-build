@@ -1,0 +1,18 @@
+#!/bin/sh
+# Turn the blue LED on while the Wi-Fi interface has a global IPv4 address.
+
+LED="${LED:-/sys/class/leds/mxq-h3:blue:wifi/brightness}"
+IFACE="${IFACE:-wlan0}"
+last=""
+
+while :; do
+	if ip -4 -o addr show dev "$IFACE" scope global 2> /dev/null | grep -q inet; then
+		state=1
+	else
+		state=0
+	fi
+	if [ "$state" != "$last" ] && echo "$state" > "$LED" 2> /dev/null; then
+		last="$state"
+	fi
+	sleep 2
+done

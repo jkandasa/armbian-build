@@ -19,6 +19,8 @@ It has no changes from the rk3128 or ik316 branches, except the Wi-Fi extension.
 | File                                                           | Role                             |
 | -------------------------------------------------------------- | -------------------------------- |
 | `config/boards/mxq-h3.tvb`                                     | Board entry, Wi-Fi, package hold |
+| `packages/bsp/mxq-h3/mxq-h3-wifi-led`                          | Blue LED for the Wi-Fi IPv4 link |
+| `packages/bsp/mxq-h3/mxq-h3-wifi-led.service`                  | Service for the Wi-Fi LED        |
 | `extensions/ssv6x5x.sh`                                        | Build and install `ssv6x5x`      |
 | `patch/misc/ssv6x5x/0001-replace-strncpy.patch`                | Replace `strncpy` with `strscpy` |
 | `patch/kernel/archive/sunxi-6.18/dt_32/sun8i-h3-mxq.dts`       | Kernel 6.18 board tree           |
@@ -69,7 +71,7 @@ The tree includes `sun8i-h3.dtsi`.
 The tree takes these parts from the Sunvell R69 tree:
 
 - the Wi-Fi power on PL7 and the Wi-Fi reset on PL0
-- the LEDs on PA15 and PL10
+- the LED pins PA15 and PL10
 - the eMMC pin drive of 40 mA
 
 The tree adds these parts:
@@ -78,6 +80,7 @@ The tree adds these parts:
 - the analog codec and the HDMI sound card
 - USB EHCI and OHCI 2 and 3
 - USB0 in host mode without a VBUS regulator
+- both LEDs active low: red for power, blue for the Wi-Fi link
 
 The tree has no CPU regulator.
 The tree deletes the OPPs from 1104 MHz to 1368 MHz.

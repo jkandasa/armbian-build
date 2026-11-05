@@ -217,6 +217,45 @@ The package `postinst` reads an empty value from `/etc/armbian-release`.
 That empty value replaces `yes`.
 Use `write_uboot_platform` as shown.
 
+## LEDs on the h3_mxq_2026-11-03 image
+
+The image of release `h3_mxq_2026-11-03` has the old LED settings.
+In that image, the red LED is on and the blue LED is off.
+Later images use red for power and blue for the Wi-Fi link.
+Use this overlay to get the new LED settings without a new image.
+
+```bash
+cat > /tmp/mxq-h3-leds.dts <<'DTS'
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/leds/led-0";
+		__overlay__ {
+			label = "mxq-h3:blue:wifi";
+			gpios = <&pio 0 15 1>;
+			default-state = "off";
+		};
+	};
+
+	fragment@1 {
+		target-path = "/leds/led-1";
+		__overlay__ {
+			label = "mxq-h3:red:power";
+			gpios = <&r_pio 0 10 1>;
+			default-state = "on";
+		};
+	};
+};
+DTS
+sudo armbian-add-overlay /tmp/mxq-h3-leds.dts
+```
+
+Install `mxq-h3-wifi-led` and `mxq-h3-wifi-led.service` from `packages/bsp/mxq-h3/`.
+Put the script in `/usr/lib/mxq-h3/` and the unit in `/usr/lib/systemd/system/`.
+Then run `sudo systemctl enable mxq-h3-wifi-led` and reboot.
+
 ## Wi-Fi SDIO clock
 
 The Wi-Fi driver runs the SDIO bus at 50 MHz.

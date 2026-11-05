@@ -123,10 +123,15 @@ The stock tree also sets `bt_hostwake_enable` to 0.
 
 ## LEDs and IR
 
-| LED     | Pin  | State in Linux |
-| ------- | ---- | -------------- |
-| Status  | PA15 | On             |
-| Standby | PL10 | Off            |
+| LED            | Pin  | Polarity   | Linux name         | Use                        |
+| -------------- | ---- | ---------- | ------------------ | -------------------------- |
+| Red            | PL10 | Active low | `mxq-h3:red:power` | On while the system runs   |
+| Blue           | PA15 | Active low | `mxq-h3:blue:wifi` | On while `wlan0` has IPv4  |
+
+The board test confirms the colours and the polarity.
+A low pin turns the LED on.
+The `mxq-h3-wifi-led` service in the board package controls the blue LED.
+The service checks `wlan0` every 2 seconds.
 
 The IR receiver uses the CIR on PL11.
 The stock remote uses NEC.

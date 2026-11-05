@@ -14,3 +14,11 @@ KERNEL_TEST_TARGET="edge"
 enable_extension "ssv6x5x"
 # The repo has packages with the same names and no MXQ H3 device tree. Hold the board packages.
 BSPFREEZE="${BSPFREEZE:-yes}"
+
+function post_family_tweaks_bsp__mxq-h3_wifi_led() {
+	display_alert "${BOARD}" "Installing the Wi-Fi LED service" "info"
+	install -Dm755 "${SRC}/packages/bsp/mxq-h3/mxq-h3-wifi-led" "${destination}/usr/lib/mxq-h3/mxq-h3-wifi-led"
+	install -Dm644 "${SRC}/packages/bsp/mxq-h3/mxq-h3-wifi-led.service" "${destination}/usr/lib/systemd/system/mxq-h3-wifi-led.service"
+	mkdir -p "${destination}/etc/systemd/system/multi-user.target.wants"
+	ln -sf /usr/lib/systemd/system/mxq-h3-wifi-led.service "${destination}/etc/systemd/system/multi-user.target.wants/mxq-h3-wifi-led.service"
+}

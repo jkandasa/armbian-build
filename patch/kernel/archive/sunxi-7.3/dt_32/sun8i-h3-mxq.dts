@@ -41,16 +41,17 @@
 	leds {
 		compatible = "gpio-leds";
 
+		/* mxq-h3-wifi-led turns this LED on while wlan0 has an IPv4 address. */
 		led-0 {
-			label = "mxq-h3:blue:status";
-			gpios = <&pio 0 15 GPIO_ACTIVE_HIGH>; /* PA15 */
-			default-state = "on";
+			label = "mxq-h3:blue:wifi";
+			gpios = <&pio 0 15 GPIO_ACTIVE_LOW>; /* PA15 */
+			default-state = "off";
 		};
 
 		led-1 {
-			label = "mxq-h3:red:standby";
-			gpios = <&r_pio 0 10 GPIO_ACTIVE_HIGH>; /* PL10 */
-			default-state = "off";
+			label = "mxq-h3:red:power";
+			gpios = <&r_pio 0 10 GPIO_ACTIVE_LOW>; /* PL10 */
+			default-state = "on";
 		};
 	};
 
