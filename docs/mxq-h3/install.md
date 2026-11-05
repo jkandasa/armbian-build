@@ -217,6 +217,19 @@ The package `postinst` reads an empty value from `/etc/armbian-release`.
 That empty value replaces `yes`.
 Use `write_uboot_platform` as shown.
 
+## Wi-Fi SDIO clock
+
+The Wi-Fi driver runs the SDIO bus at 50 MHz.
+Use 25 MHz when the log shows SDIO errors such as `EILSEQ` or `-84`.
+25 MHz limits Wi-Fi to about 50 Mbit/s.
+
+```bash
+echo "options ssv6x5x ssv6xxx_sdio_slow_clock=1" | sudo tee /etc/modprobe.d/ssv6x5x.conf
+sudo reboot
+```
+
+Remove the file to go back to 50 MHz.
+
 ## First checks on the board
 
 ```bash

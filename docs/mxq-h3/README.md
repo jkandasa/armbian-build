@@ -28,25 +28,23 @@ Use the PCB name `Q44` to identify this board.
 
 ## Status
 
-The board test used kernel 7.3.1 and U-Boot v2024.01 with `orangepi_pc_plus_defconfig`.
-The test device tree has the final CPU settings.
-The final tree also fixes the thermal cooling maps.
-The final image is not tested on the board yet.
+The board test used the edge image of release `h3_mxq_2026-11-03`.
+The image was installed to the eMMC with `armbian-config`.
 
-| Function                 | Status                                          |
-| ------------------------ | ----------------------------------------------- |
-| Image build, current     | Builds, kernel 6.18.60                          |
-| Image build, edge        | Builds, kernel 7.3.1                            |
-| Cold boot, SD and eMMC   | Works                                           |
-| Warm reboot, eMMC        | Works                                           |
-| CPU and RAM stress       | 10 min at 1008 MHz, 0 errors, 74 °C peak        |
-| Ethernet                 | Works, 100 Mbit/s full duplex                   |
-| HDMI video               | Works                                           |
-| Audio                    | Codec and HDMI devices register. Playback not tested. |
-| Wi-Fi                    | Scan, WPA connect, and DHCP work                |
-| IR receiver              | Registers as `rc0`. Remote not tested.          |
-| LEDs, USB, SD, eMMC      | Work. eMMC runs DDR52, 8 bits.                  |
-| Kernel 6.18 on the board | Not tested                                      |
+| Function               | Status                                                |
+| ---------------------- | ----------------------------------------------------- |
+| Image build, current   | Builds, kernel 6.18.60                                |
+| Image build, edge      | Builds, kernel 7.3.1                                  |
+| Cold boot, SD and eMMC | Works                                                 |
+| Warm reboot, eMMC      | Works                                                 |
+| CPU and RAM stress     | 10 min at 1008 MHz, 0 errors, 73.6 °C peak, no throttling |
+| Ethernet               | 100 Mbit/s full duplex                                |
+| Wi-Fi                  | 5 GHz, WPA, DHCP. 0% ping loss. 14 to 89 Mbit/s download. |
+| HDMI video             | Works                                                 |
+| Audio                  | Codec and HDMI devices register. Playback not tested. |
+| IR receiver            | Registers as `rc0`. Remote not tested.                |
+| LEDs, USB, SD, eMMC    | Work. eMMC runs DDR52, 8 bits.                        |
+| Kernel 6.18 on the board | Not tested                                          |
 
 The CPU runs at 1008 MHz at most.
 The stock firmware uses the same limit at a fixed 1.30 V.

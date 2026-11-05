@@ -88,6 +88,26 @@ The firmware files are `ssv6x5x-sw.bin` and `ssv6x5x-wifi.cfg`.
 The Armbian firmware file `ssv6x5x-sw.bin` is identical to the stock file.
 The stock configuration sets a 24 MHz crystal.
 
+The chip supports 2.4 GHz and 5 GHz.
+The stock configuration disables 5 GHz with `hw_cap_5ghz = off`.
+The Armbian configuration enables 5 GHz.
+The board test connects on channel 36, 40 MHz wide, at MCS 7.
+
+The driver starts the SDIO bus at 25 MHz.
+After the firmware load, the driver sets the bus to 50 MHz.
+The module parameter `ssv6xxx_sdio_slow_clock=1` keeps the bus at 25 MHz.
+
+| SDIO clock | Download, 5 runs, Mbit/s     | Average |
+| ---------- | ---------------------------- | ------- |
+| 50 MHz     | 81.9, 31.1, 88.8, 14.2, 88.6 | 60.9    |
+| 25 MHz     | 36.9, 47.9, 48.7, 49.0, 49.7 | 46.4    |
+| 50 MHz     | 16.0, 56.0, 16.1, 88.2, 50.7 | 45.4    |
+
+50 MHz gives the highest speed, but the speed changes between runs.
+25 MHz limits the speed to about 50 Mbit/s, but the speed is stable.
+The log shows no SDIO errors at 50 MHz.
+The test used an internet download, so the speed changes can come from the network.
+
 | Signal         | Pin  | Kernel use                      |
 | -------------- | ---- | ------------------------------- |
 | Wi-Fi power    | PL7  | `vcc-wifi` regulator            |
